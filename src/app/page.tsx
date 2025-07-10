@@ -18,11 +18,11 @@ interface QuestionWithAnswer {
 }
 
 interface GeneratedQuestions {
-  [category: string]: QuestionWithAnswer[];
+  [category: string]: QuestionWithAnswer[] | boolean | string;
 }
 
 export default function Home() {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestions | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());

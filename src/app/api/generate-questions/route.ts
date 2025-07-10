@@ -111,11 +111,11 @@ async function extractTextFromFile(file: File): Promise<string> {
           console.error('Error details:', pdfError);
           
           // If it's the test file issue, provide a clearer message
-          if (pdfError.message && pdfError.message.includes('test/data/05-versions-space.pdf')) {
+          if (pdfError instanceof Error && pdfError.message && pdfError.message.includes('test/data/05-versions-space.pdf')) {
             throw new Error('PDF file format is not supported by the current parser. Please try saving your PDF in a different format or convert to DOCX.');
           }
           
-          throw new Error(`PDF parsing failed: ${pdfError.message}`);
+          throw new Error(`PDF parsing failed: ${pdfError instanceof Error ? pdfError.message : 'Unknown error'}`);
         }
         
       case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
@@ -160,14 +160,16 @@ async function extractTextFromFile(file: File): Promise<string> {
     }
   } catch (error) {
     console.error('File extraction error:', error);
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
-    });
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
     
     // Re-throw with clear error message
-    throw new Error(`Failed to extract text from ${file.name}: ${error.message}`);
+    throw new Error(`Failed to extract text from ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -761,7 +763,7 @@ export async function POST(request: NextRequest) {
             "example": "I start by understanding each developer's current skills and career goals. I create personalized learning plans with specific milestones and pair programming sessions. I provide regular feedback, encourage questions, and create safe spaces for making mistakes. One junior developer I mentored became a tech lead within 18 months, successfully launching three major features."
           }
         ],
-        "Behavioral Questions": [
+        "Learning and Adaptability": [
           {
             "question": "Tell me about a time you had to learn something new quickly.",
             "howToAnswer": "Use the STAR method:\n\n1. SITUATION (20%): Set the context - when, where, who was involved\n2. TASK (20%): Describe your specific responsibility or challenge\n3. ACTION (50%): Detail the steps you took - this is the most important part\n4. RESULT (10%): Share the outcomes with specific metrics when possible\n\nTips:\n- Use 'I' not 'we' to highlight your individual contribution\n- Include lessons learned or skills developed\n- Choose examples that demonstrate the competency being assessed\n- Prepare multiple STAR examples for different scenarios",
@@ -823,7 +825,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('Resume extraction failed:', error);
       return NextResponse.json(
-        { error: `Failed to process resume file: ${error.message}. Please try converting to a different format or ensure the file is not corrupted.` },
+        { error: `Failed to process resume file: ${error instanceof Error ? error.message : 'Unknown error'}. Please try converting to a different format or ensure the file is not corrupted.` },
         { status: 400 }
       );
     }
@@ -954,7 +956,7 @@ export async function POST(request: NextRequest) {
 
     // Record the usage in database
     console.log('=== RECORDING USAGE IN DATABASE ===');
-    const questionCount = Object.values(questions).reduce((total, category) => total + (category as any[]).length, 0);
+    const questionCount = Object.values(questions).reduce((total: number, category) => total + (category as any[]).length, 0);
     console.log('Total questions generated:', questionCount);
     
     const usageRecord = {
