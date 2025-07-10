@@ -119,7 +119,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
           <p className="text-gray-600">
             {mode === 'login' 
               ? 'Sign in to generate your interview questions' 
-              : 'Join Land It AI to get started'}
+              : 'You\'ll need to create a free account to generate questions'}
           </p>
         </div>
 
