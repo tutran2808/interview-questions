@@ -38,20 +38,21 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
     setEmailValid(false);
     setError('');
     
-    // Only validate if email is not empty and user has stopped typing for a moment
+    // Immediate validation for better UX
     if (newEmail.length > 0) {
-      setTimeout(() => {
-        const validation = validateEmail(newEmail);
-        if (newEmail === email) { // Make sure user hasn't changed it
-          if (validation.isValid) {
-            setEmailValid(true);
-            setEmailError('');
-          } else {
+      const validation = validateEmail(newEmail);
+      if (validation.isValid) {
+        setEmailValid(true);
+        setEmailError('');
+      } else {
+        // Only show error after user stops typing for a moment
+        setTimeout(() => {
+          if (newEmail === email) { // Make sure user hasn't changed it
             setEmailError(validation.error || 'Invalid email');
             setEmailValid(false);
           }
-        }
-      }, 500); // 500ms delay for better UX
+        }, 800);
+      }
     }
   };
 
@@ -294,7 +295,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
 
           <button
             type="submit"
-            disabled={loading || emailError !== '' || (email && !emailValid) || (!email)}
+            disabled={loading || emailError !== '' || !email || (mode !== 'forgot' && !password)}
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
