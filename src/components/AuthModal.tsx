@@ -133,16 +133,23 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
         // Normalize email to check for existing accounts
         const normalizedEmail = normalizeEmail(email);
         
-        // Try to sign up and detect existing user from the error response
-        // This is the most reliable way since Supabase will tell us if the user exists
-        const { error: signUpError, needsVerification } = await signUp(email, password);
-        console.log('AuthModal signup result:', { signUpError, needsVerification });
-        
-        if (signUpError) {
-          // Check if error indicates user already exists
-          if (signUpError.message.includes('already') || 
-              signUpError.message.includes('exists') ||
-              signUpError.message.includes('registered')) {
+        // Check if user exists using admin API call first
+        try {
+          const response = await fetch('/api/check-user-exists', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              email: normalizedEmail,
+              originalEmail: email.toLowerCase()
+            }),
+          });
+          
+          const { exists, error: checkError } = await response.json();
+          console.log('User exists check:', { exists, checkError, email: normalizedEmail });
+          
+          if (exists) {
             setError('');
             setMessage('An account with this email already exists. Please sign in instead, or use "Forgot Password" if you don\'t remember your password.');
             // Auto-switch to login mode after 5 seconds
@@ -151,9 +158,20 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
               setError('');
               setMessage('Switched to sign in mode. Use "Forgot Password" if needed.');
             }, 5000);
-          } else {
-            setError(signUpError.message);
+            setLoading(false);
+            return;
           }
+        } catch (checkError) {
+          console.error('Error checking user existence:', checkError);
+          // Continue with signup if check fails
+        }
+        
+        // Proceed with signup
+        const { error: signUpError, needsVerification } = await signUp(email, password);
+        console.log('AuthModal signup result:', { signUpError, needsVerification });
+        
+        if (signUpError) {
+          setError(signUpError.message);
         } else if (needsVerification) {
           setMessage('Check your email for the confirmation link!');
         } else {
