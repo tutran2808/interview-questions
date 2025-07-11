@@ -29,13 +29,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Safety timeout to ensure loading never gets stuck
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn('Auth loading timeout reached, forcing loading to false');
+        setLoading(false);
+      }
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [loading]);
+
   useEffect(() => {
     // Get initial session
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error('Error getting initial session:', error);
+        setSession(null);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
     };
 
     getSession();
@@ -52,26 +71,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('User signed in:', session.user.email);
           
           // Check if user record exists, if not the trigger should have created it
-          const { data: existingUser, error: checkError } = await supabase
-            .from('users')
-            .select('id')
-            .eq('id', session.user.id)
-            .single();
-            
-          if (checkError && checkError.code === 'PGRST116') {
-            // User doesn't exist, create manually (fallback if trigger failed)
-            const { error: createError } = await supabase
+          try {
+            const { data: existingUser, error: checkError } = await supabase
               .from('users')
-              .insert({
-                id: session.user.id,
-                email: session.user.email!,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              });
+              .select('id')
+              .eq('id', session.user.id)
+              .single();
               
-            if (createError) {
-              console.error('Error creating user record:', createError);
+            if (checkError && checkError.code === 'PGRST116') {
+              // User doesn't exist, create manually (fallback if trigger failed)
+              const { error: createError } = await supabase
+                .from('users')
+                .insert({
+                  id: session.user.id,
+                  email: session.user.email!,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                });
+                
+              if (createError) {
+                console.error('Error creating user record:', createError);
+              }
             }
+          } catch (userError) {
+            console.error('Error handling user record:', userError);
+            // Don't block auth flow for user record issues
           }
         }
       }
