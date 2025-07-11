@@ -63,14 +63,9 @@ const HowItWorksSection: React.FC = () => {
           {/* Connection line for desktop - positioned to align with circle centers */}
           <div className="hidden lg:block absolute top-12 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-200 via-purple-200 to-indigo-200"></div>
           
-          <div className="grid lg:grid-cols-4 gap-8 lg:gap-4">
+          <div className="grid lg:grid-cols-4 gap-12 lg:gap-4">
             {steps.map((step, index) => (
               <div key={index} className="relative">
-                {/* Mobile connection line */}
-                {index < steps.length - 1 && (
-                  <div className="lg:hidden absolute left-1/2 top-32 w-0.5 h-16 bg-gradient-to-b from-indigo-200 to-purple-200 transform -translate-x-1/2"></div>
-                )}
-                
                 <div className="text-center">
                   {/* Step number and icon */}
                   <div className="relative mx-auto w-24 h-24 mb-6">
