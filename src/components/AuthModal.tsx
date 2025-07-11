@@ -133,39 +133,27 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
         // Normalize email to check for existing accounts
         const normalizedEmail = normalizeEmail(email);
         
-        // Check if user already exists in database
-        const { data: existingUsers, error: checkError } = await supabase
-          .from('users')
-          .select('email, id')
-          .or(`email.eq.${normalizedEmail},email.eq.${email.toLowerCase()}`);
-        
-        if (checkError) {
-          console.error('Error checking existing users:', checkError);
-          setError('Unable to verify account status. Please try again.');
-          setLoading(false);
-          return;
-        }
-        
-        // Check for existing users (including email variations)
-        if (existingUsers && existingUsers.length > 0) {
-          setError('');
-          setMessage('An account with this email (or a similar variation) already exists. Please sign in instead, or use "Forgot Password" if you don\'t remember your password.');
-          // Auto-switch to login mode after 5 seconds
-          setTimeout(() => {
-            setMode('login');
-            setError('');
-            setMessage('Switched to sign in mode. Use "Forgot Password" if needed.');
-          }, 5000);
-          setLoading(false);
-          return;
-        }
-
-        // Proceed with signup if no existing account found
+        // Try to sign up and detect existing user from the error response
+        // This is the most reliable way since Supabase will tell us if the user exists
         const { error: signUpError, needsVerification } = await signUp(email, password);
         console.log('AuthModal signup result:', { signUpError, needsVerification });
         
         if (signUpError) {
-          setError(signUpError.message);
+          // Check if error indicates user already exists
+          if (signUpError.message.includes('already') || 
+              signUpError.message.includes('exists') ||
+              signUpError.message.includes('registered')) {
+            setError('');
+            setMessage('An account with this email already exists. Please sign in instead, or use "Forgot Password" if you don\'t remember your password.');
+            // Auto-switch to login mode after 5 seconds
+            setTimeout(() => {
+              setMode('login');
+              setError('');
+              setMessage('Switched to sign in mode. Use "Forgot Password" if needed.');
+            }, 5000);
+          } else {
+            setError(signUpError.message);
+          }
         } else if (needsVerification) {
           setMessage('Check your email for the confirmation link!');
         } else {
