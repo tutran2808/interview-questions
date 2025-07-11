@@ -18,16 +18,32 @@ function ResetPasswordForm() {
     const accessToken = hashParams.get('access_token');
     const refreshToken = hashParams.get('refresh_token');
     
+    console.log('Reset password tokens:', { accessToken: !!accessToken, refreshToken: !!refreshToken });
+    
     if (!accessToken || !refreshToken) {
       setError('Invalid reset link. Please request a new password reset.');
       return;
     }
 
     // Set the session with the tokens from the URL
-    supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
+    const setSessionAsync = async () => {
+      try {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        
+        if (error) {
+          console.error('Error setting session:', error);
+          setError('Invalid reset link. Please request a new password reset.');
+        }
+      } catch (error) {
+        console.error('Error setting session:', error);
+        setError('Invalid reset link. Please request a new password reset.');
+      }
+    };
+    
+    setSessionAsync();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,12 +66,17 @@ function ResetPasswordForm() {
     }
 
     try {
-      const { error } = await supabase.auth.updateUser({
+      console.log('Attempting to update password...');
+      
+      const { data, error } = await supabase.auth.updateUser({
         password: password
       });
 
+      console.log('Password update result:', { data, error });
+
       if (error) {
-        setError(error.message);
+        console.error('Password update error:', error);
+        setError(error.message || 'Failed to update password. Please try again.');
       } else {
         setMessage('Password updated successfully! Redirecting to login...');
         setTimeout(() => {
@@ -63,6 +84,7 @@ function ResetPasswordForm() {
         }, 2000);
       }
     } catch (error) {
+      console.error('Password update catch error:', error);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
