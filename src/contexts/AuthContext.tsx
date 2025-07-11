@@ -27,44 +27,36 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Safety timeout to ensure loading never gets stuck
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (loading) {
-        console.warn('Auth loading timeout reached, forcing loading to false');
-        setLoading(false);
-      }
-    }, 10000); // 10 second timeout
-
-    return () => clearTimeout(timeout);
-  }, [loading]);
+  const [loading, setLoading] = useState(false); // Start with false for better UX
 
   useEffect(() => {
-    // Get initial session
+    let isMounted = true;
+    
+    // Get initial session quickly in background
     const getSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
+        if (isMounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
       } catch (error) {
         console.error('Error getting initial session:', error);
-        setSession(null);
-        setUser(null);
-      } finally {
-        setLoading(false);
+        // Don't block UI for auth errors
       }
     };
 
     getSession();
+    
+    return () => {
+      isMounted = false;
+    };
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
 
         // Handle email confirmation
         if (event === 'SIGNED_IN' && session?.user) {
@@ -105,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signUp = async (email: string, password: string) => {
+    setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -139,10 +132,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Signup catch error:', error);
       return { error: error as AuthError };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signIn = async (email: string, password: string) => {
+    setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -152,6 +148,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error };
     } catch (error) {
       return { error: error as AuthError };
+    } finally {
+      setLoading(false);
     }
   };
 
