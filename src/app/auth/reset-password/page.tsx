@@ -68,9 +68,17 @@ function ResetPasswordForm() {
     try {
       console.log('Attempting to update password...');
       
-      const { data, error } = await supabase.auth.updateUser({
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
+      
+      const updatePromise = supabase.auth.updateUser({
         password: password
       });
+      
+      const result = await Promise.race([updatePromise, timeoutPromise]);
+      const { data, error } = result as any;
 
       console.log('Password update result:', { data, error });
 
@@ -83,9 +91,13 @@ function ResetPasswordForm() {
           router.push('/?login=true');
         }, 2000);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Password update catch error:', error);
-      setError('An unexpected error occurred. Please try again.');
+      if (error.message === 'Request timeout') {
+        setError('Request timed out. Please check your connection and try again.');
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
