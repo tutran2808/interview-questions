@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { normalizeEmail, validateEmail, checkRateLimit } from '@/utils/emailValidation';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -21,8 +23,37 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [emailValid, setEmailValid] = useState(false);
 
   const { signIn, signUp, resetPassword } = useAuth();
+
+  // Real-time email validation
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    
+    // Clear previous states
+    setEmailError('');
+    setEmailValid(false);
+    setError('');
+    
+    // Only validate if email is not empty and user has stopped typing for a moment
+    if (newEmail.length > 0) {
+      setTimeout(() => {
+        const validation = validateEmail(newEmail);
+        if (newEmail === email) { // Make sure user hasn't changed it
+          if (validation.isValid) {
+            setEmailValid(true);
+            setEmailError('');
+          } else {
+            setEmailError(validation.error || 'Invalid email');
+            setEmailValid(false);
+          }
+        }
+      }, 500); // 500ms delay for better UX
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,13 +61,23 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
     setError('');
     setMessage('');
 
-    if (!email || !password) {
+    // Basic field validation
+    if (!email || (mode !== 'forgot' && !password)) {
       setError('Please fill in all fields');
       setLoading(false);
       return;
     }
 
-    if (password.length < 6) {
+    // Email validation
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      setError(emailValidation.error || 'Invalid email address');
+      setLoading(false);
+      return;
+    }
+
+    // Password validation for signup/login
+    if (mode !== 'forgot' && password.length < 6) {
       setError('Password must be at least 6 characters');
       setLoading(false);
       return;
@@ -44,8 +85,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
 
     try {
       if (mode === 'forgot') {
-        if (!email) {
-          setError('Please enter your email address');
+        // Check rate limiting
+        const normalizedEmail = normalizeEmail(email);
+        const rateCheck = checkRateLimit(`forgot_${normalizedEmail}`, 3, 300000); // 3 attempts per 5 minutes
+        
+        if (!rateCheck.allowed) {
+          setError(`Too many reset attempts. Please wait ${Math.ceil(rateCheck.timeLeft! / 60)} minutes before trying again.`);
           setLoading(false);
           return;
         }
@@ -62,32 +107,59 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
           }, 3000);
         }
       } else if (mode === 'signup') {
+        // Check rate limiting for signup attempts
+        const clientIP = 'unknown'; // In production, get real IP
+        const rateCheck = checkRateLimit(`signup_${clientIP}`, 5, 600000); // 5 attempts per 10 minutes
+        
+        if (!rateCheck.allowed) {
+          setError(`Too many signup attempts. Please wait ${Math.ceil(rateCheck.timeLeft! / 60)} minutes before trying again.`);
+          setLoading(false);
+          return;
+        }
+
+        // Normalize email to check for existing accounts
+        const normalizedEmail = normalizeEmail(email);
+        
+        // Check if user already exists in database
+        const { data: existingUsers, error: checkError } = await supabase
+          .from('users')
+          .select('email, id')
+          .or(`email.eq.${normalizedEmail},email.eq.${email.toLowerCase()}`);
+        
+        if (checkError) {
+          console.error('Error checking existing users:', checkError);
+          setError('Unable to verify account status. Please try again.');
+          setLoading(false);
+          return;
+        }
+        
+        // Check for existing users (including email variations)
+        if (existingUsers && existingUsers.length > 0) {
+          setError('');
+          setMessage('An account with this email (or a similar variation) already exists. Please sign in instead, or use "Forgot Password" if you don\'t remember your password.');
+          // Auto-switch to login mode after 5 seconds
+          setTimeout(() => {
+            setMode('login');
+            setError('');
+            setMessage('Switched to sign in mode. Use "Forgot Password" if needed.');
+          }, 5000);
+          setLoading(false);
+          return;
+        }
+
+        // Proceed with signup if no existing account found
         const { error: signUpError, needsVerification } = await signUp(email, password);
         console.log('AuthModal signup result:', { signUpError, needsVerification });
         
         if (signUpError) {
-          // Check common Supabase error patterns for existing users
-          const errorMsg = signUpError.message.toLowerCase();
-          if (errorMsg.includes('already') || 
-              errorMsg.includes('exists') ||
-              errorMsg.includes('registered')) {
-            setError('');
-            setMessage('An account with this email already exists. Please sign in instead, or use "Forgot Password" if you don\'t remember your password.');
-            // Auto-switch to login mode after 5 seconds
-            setTimeout(() => {
-              setMode('login');
-              setError('');
-              setMessage('Switched to sign in mode. Use "Forgot Password" if needed.');
-            }, 5000);
-          } else {
-            setError(signUpError.message);
-          }
+          setError(signUpError.message);
         } else if (needsVerification) {
           setMessage('Check your email for the confirmation link!');
         } else {
           setMessage('Account created successfully! Check your email for the confirmation link.');
         }
       } else {
+        // Login mode
         const { error: signInError } = await signIn(email, password);
         if (signInError) {
           if (signInError.message.includes('Invalid login credentials')) {
@@ -102,7 +174,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
         }
       }
     } catch (error) {
-      setError('An unexpected error occurred');
+      console.error('Auth error:', error);
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -161,14 +234,42 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Email
             </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-              placeholder="Enter your email"
-              required
-            />
+            <div className="relative">
+              <input
+                type="email"
+                value={email}
+                onChange={handleEmailChange}
+                className={`w-full px-4 py-3 pr-10 border rounded-xl focus:ring-2 transition-colors ${
+                  emailError 
+                    ? 'border-red-300 focus:ring-red-100 focus:border-red-500' 
+                    : emailValid
+                    ? 'border-green-300 focus:ring-green-100 focus:border-green-500'
+                    : 'border-gray-300 focus:ring-indigo-100 focus:border-indigo-500'
+                }`}
+                placeholder="Enter your email"
+                required
+              />
+              {emailValid && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+                  </svg>
+                </div>
+              )}
+              {emailError && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"></path>
+                  </svg>
+                </div>
+              )}
+            </div>
+            {emailError && (
+              <p className="text-red-600 text-xs mt-1">{emailError}</p>
+            )}
+            {emailValid && !emailError && (
+              <p className="text-green-600 text-xs mt-1">✓ Valid email address</p>
+            )}
           </div>
 
           {mode !== 'forgot' && (
@@ -193,7 +294,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || emailError !== '' || (email && !emailValid) || (!email)}
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
