@@ -23,41 +23,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [emailValid, setEmailValid] = useState(false);
 
   const { signIn, signUp, resetPassword } = useAuth();
 
-  // Real-time email validation
+  // Simplified email handling
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newEmail = e.target.value;
     setEmail(newEmail);
-    
-    // Clear previous states
-    setEmailError('');
-    setEmailValid(false);
+    // Clear errors when user types
     setError('');
-    
-    // Immediate validation for better UX
-    if (newEmail.length > 0) {
-      const validation = validateEmail(newEmail);
-      console.log('Email validation result:', { email: newEmail, validation }); // Debug log
-      
-      if (validation.isValid) {
-        setEmailValid(true);
-        setEmailError('');
-        // Clear any form-level errors when email becomes valid
-        setError('');
-      } else {
-        setEmailError(validation.error || 'Invalid email');
-        setEmailValid(false);
-      }
-    } else {
-      // Also clear errors when email field is empty
-      setEmailValid(false);
-      setEmailError('');
-      setError('');
-    }
+    setMessage('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,31 +41,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
     setError('');
     setMessage('');
 
-    // Basic field validation
-    if (!email || (mode !== 'forgot' && !password)) {
-      setError('Please fill in all fields');
+    // Basic field validation only
+    if (!email || email.trim() === '') {
+      setError('Please enter your email address');
       setLoading(false);
       return;
     }
 
-    // Debug logging to see the validation state
-    console.log('Submit validation check:', { 
-      email, 
-      emailValid, 
-      emailError,
-      mode 
-    });
-
-    // Run validation one more time to be sure
-    const finalValidation = validateEmail(email);
-    if (!finalValidation.isValid) {
-      setError(finalValidation.error || 'Please enter a valid email address');
-      setLoading(false);
-      return;
-    }
-
-    // Password validation for signup/login
-    if (mode !== 'forgot' && password.length < 6) {
+    if (mode !== 'forgot' && (!password || password.length < 6)) {
       setError('Password must be at least 6 characters');
       setLoading(false);
       return;
@@ -98,96 +56,32 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
 
     try {
       if (mode === 'forgot') {
-        // Check rate limiting
-        const normalizedEmail = normalizeEmail(email);
-        const rateCheck = checkRateLimit(`forgot_${normalizedEmail}`, 3, 300000); // 3 attempts per 5 minutes
-        
-        if (!rateCheck.allowed) {
-          setError(`Too many reset attempts. Please wait ${Math.ceil(rateCheck.timeLeft! / 60)} minutes before trying again.`);
-          setLoading(false);
-          return;
-        }
-        
         const { error: resetError } = await resetPassword(email);
         if (resetError) {
-          setError(resetError.message);
+          setError('Unable to send password reset email. Please try again.');
         } else {
           setMessage('Password reset email sent! Check your inbox and follow the instructions.');
-          setTimeout(() => {
-            setMode('login');
-            setError('');
-            setMessage('');
-          }, 3000);
         }
       } else if (mode === 'signup') {
-        // Check rate limiting for signup attempts
-        const clientIP = 'unknown'; // In production, get real IP
-        const rateCheck = checkRateLimit(`signup_${clientIP}`, 5, 600000); // 5 attempts per 10 minutes
-        
-        if (!rateCheck.allowed) {
-          setError(`Too many signup attempts. Please wait ${Math.ceil(rateCheck.timeLeft! / 60)} minutes before trying again.`);
-          setLoading(false);
-          return;
-        }
-
-        // Normalize email to check for existing accounts
-        const normalizedEmail = normalizeEmail(email);
-        
-        // Check if user exists using admin API call first
-        try {
-          const response = await fetch('/api/check-user-exists', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-              email: normalizedEmail,
-              originalEmail: email.toLowerCase()
-            }),
-          });
-          
-          const { exists, error: checkError } = await response.json();
-          console.log('User exists check:', { exists, checkError, email: normalizedEmail });
-          
-          if (exists) {
-            setError('');
-            setMessage('An account with this email already exists. Please sign in instead, or use "Forgot Password" if you don\'t remember your password.');
-            // Auto-switch to login mode after 5 seconds
-            setTimeout(() => {
-              setMode('login');
-              setError('');
-              setMessage('Switched to sign in mode. Use "Forgot Password" if needed.');
-            }, 5000);
-            setLoading(false);
-            return;
-          }
-        } catch (checkError) {
-          console.error('Error checking user existence:', checkError);
-          // Continue with signup if check fails
-        }
-        
-        // Proceed with signup
         const { error: signUpError, needsVerification } = await signUp(email, password);
-        console.log('AuthModal signup result:', { signUpError, needsVerification });
-        
         if (signUpError) {
-          setError(signUpError.message);
+          if (signUpError.message.includes('already') || signUpError.message.includes('exists')) {
+            setMessage('An account with this email already exists. Please sign in instead.');
+            setTimeout(() => setMode('login'), 3000);
+          } else {
+            setError(signUpError.message);
+          }
         } else if (needsVerification) {
           setMessage('Check your email for the confirmation link!');
         } else {
-          setMessage('Account created successfully! Check your email for the confirmation link.');
+          setMessage('Account created successfully!');
+          onClose();
         }
       } else {
         // Login mode
         const { error: signInError } = await signIn(email, password);
         if (signInError) {
-          if (signInError.message.includes('Invalid login credentials')) {
-            setError('Invalid email or password. Please try again.');
-          } else if (signInError.message.includes('Email not confirmed')) {
-            setError('Please check your email and click the confirmation link before signing in.');
-          } else {
-            setError(signInError.message);
-          }
+          setError('Invalid email or password. Please try again.');
         } else {
           onClose();
         }
@@ -253,42 +147,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Email
             </label>
-            <div className="relative">
-              <input
-                type="email"
-                value={email}
-                onChange={handleEmailChange}
-                className={`w-full px-4 py-3 pr-10 border rounded-xl focus:ring-2 transition-colors ${
-                  emailError 
-                    ? 'border-red-300 focus:ring-red-100 focus:border-red-500' 
-                    : emailValid
-                    ? 'border-green-300 focus:ring-green-100 focus:border-green-500'
-                    : 'border-gray-300 focus:ring-indigo-100 focus:border-indigo-500'
-                }`}
-                placeholder="Enter your email"
-                required
-              />
-              {emailValid && (
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
-                  </svg>
-                </div>
-              )}
-              {emailError && (
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"></path>
-                  </svg>
-                </div>
-              )}
-            </div>
-            {emailError && (
-              <p className="text-red-600 text-xs mt-1">{emailError}</p>
-            )}
-            {emailValid && !emailError && (
-              <p className="text-green-600 text-xs mt-1">✓ Valid email address</p>
-            )}
+            <input
+              type="email"
+              value={email}
+              onChange={handleEmailChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+              placeholder="Enter your email"
+              required
+            />
           </div>
 
           {mode !== 'forgot' && (
@@ -299,7 +165,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError('');
+                  setMessage('');
+                }}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                 placeholder="Enter your password"
                 required
@@ -313,7 +183,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
 
           <button
             type="submit"
-            disabled={loading || !email || emailError !== '' || (mode !== 'forgot' && !password)}
+            disabled={loading || !email.trim() || (mode !== 'forgot' && password.length < 6)}
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
