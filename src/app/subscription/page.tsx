@@ -89,7 +89,7 @@ export default function SubscriptionPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Subscription Management</h1>
-          <p className="text-xl text-gray-600">Manage your Land It AI subscription</p>
+          <p className="text-xl text-gray-600">Manage your Next Rounds subscription</p>
         </div>
 
         {/* Current Plan Card */}
@@ -178,7 +178,7 @@ export default function SubscriptionPage() {
         <div className="text-center">
           <p className="text-gray-600 mb-4">Need help with your subscription?</p>
           <a 
-            href="mailto:support@landitai.com" 
+            href="mailto:support@nextrounds.ai" 
             className="text-indigo-600 hover:text-indigo-800 font-medium"
           >
             Contact Support

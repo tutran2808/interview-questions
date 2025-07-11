@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Land It AI - AI-Powered Interview Question Generator",
+  title: "Next Rounds - AI-Powered Interview Question Generator",
   description: "Generate personalized interview questions using AI. Upload your resume, paste the job description, and get tailored questions for your next interview.",
   keywords: "interview questions, AI, job interview, resume analysis, career preparation",
-  authors: [{ name: "Land It AI" }],
+  authors: [{ name: "Next Rounds" }],
   viewport: "width=device-width, initial-scale=1",
   robots: "index, follow",
 };
