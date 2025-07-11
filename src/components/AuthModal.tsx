@@ -41,18 +41,22 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
     // Immediate validation for better UX
     if (newEmail.length > 0) {
       const validation = validateEmail(newEmail);
+      console.log('Email validation result:', { email: newEmail, validation }); // Debug log
+      
       if (validation.isValid) {
         setEmailValid(true);
         setEmailError('');
+        // Clear any form-level errors when email becomes valid
+        setError('');
       } else {
-        // Only show error after user stops typing for a moment
-        setTimeout(() => {
-          if (newEmail === email) { // Make sure user hasn't changed it
-            setEmailError(validation.error || 'Invalid email');
-            setEmailValid(false);
-          }
-        }, 800);
+        setEmailError(validation.error || 'Invalid email');
+        setEmailValid(false);
       }
+    } else {
+      // Also clear errors when email field is empty
+      setEmailValid(false);
+      setEmailError('');
+      setError('');
     }
   };
 
@@ -69,10 +73,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
       return;
     }
 
-    // Email validation
-    const emailValidation = validateEmail(email);
-    if (!emailValidation.isValid) {
-      setError(emailValidation.error || 'Invalid email address');
+    // Debug logging to see the validation state
+    console.log('Submit validation check:', { 
+      email, 
+      emailValid, 
+      emailError,
+      mode 
+    });
+
+    // Run validation one more time to be sure
+    const finalValidation = validateEmail(email);
+    if (!finalValidation.isValid) {
+      setError(finalValidation.error || 'Please enter a valid email address');
       setLoading(false);
       return;
     }
@@ -295,7 +307,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
 
           <button
             type="submit"
-            disabled={loading || emailError !== '' || !email || (mode !== 'forgot' && !password)}
+            disabled={loading || !email || emailError !== '' || (mode !== 'forgot' && !password)}
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
