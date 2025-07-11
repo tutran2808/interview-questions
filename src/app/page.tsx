@@ -27,6 +27,16 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  
+  // Check for login query parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('login') === 'true') {
+      setAuthModalOpen(true);
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
   const [usageInfo, setUsageInfo] = useState<{current: number, limit: number, remaining: number} | null>(null);
   const [isPro, setIsPro] = useState(false);
   const toolRef = useRef<HTMLElement>(null);
