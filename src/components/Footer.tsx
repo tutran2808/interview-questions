@@ -2,9 +2,9 @@ import React from 'react';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-gradient-to-br from-gray-900 to-black text-white py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
+    <footer className="bg-gradient-to-br from-gray-900 to-black text-white py-12 sm:py-16">
+      <div className="max-w-7xl mx-auto px-6 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 sm:gap-12">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-3 mb-6">
               <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
@@ -12,9 +12,9 @@ const Footer: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Land It AI</h3>
+              <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Land It AI</h3>
             </div>
-            <p className="text-gray-300 mb-6 max-w-md text-lg leading-relaxed">
+            <p className="text-gray-300 mb-6 max-w-md text-base sm:text-lg leading-relaxed">
               Generate personalized interview questions powered by AI. 
               Prepare for your next interview with confidence and land your dream job.
             </p>

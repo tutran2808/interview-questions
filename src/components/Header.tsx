@@ -151,18 +151,18 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
   return (
     <>
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+        <div className="max-w-7xl mx-auto px-6 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-3 sm:py-4">
             <div className="flex items-center">
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3">
                 {/* Logo */}
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
+                  <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                     Land It AI
                   </h1>
                 </div>
@@ -170,31 +170,31 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
             </div>
             
             {/* Auth buttons and Navigation */}
-            <div className="flex items-center space-x-8">
-              {/* Navigation - moved closer to user account */}
-              <nav className="hidden md:flex items-center space-x-6">
+            <div className="flex items-center space-x-3 sm:space-x-8">
+              {/* Navigation - hidden on mobile to reduce clutter */}
+              <nav className="hidden lg:flex items-center space-x-6">
                 <button 
                   onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                  className="text-gray-600 hover:text-gray-900 font-medium transition-colors text-sm"
                 >
                   How It Works
                 </button>
                 <button 
                   onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                  className="text-gray-600 hover:text-gray-900 font-medium transition-colors text-sm"
                 >
                   Pricing
                 </button>
                 <button 
                   onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                  className="text-gray-600 hover:text-gray-900 font-medium transition-colors text-sm"
                 >
                   FAQ
                 </button>
               </nav>
               
               {/* Auth section */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 sm:space-x-4">
               {loading ? (
                 <div className="w-6 h-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent"></div>
               ) : user ? (
@@ -287,13 +287,13 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
                 <>
                   <button 
                     onClick={handleSignIn}
-                    className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                    className="text-gray-600 hover:text-gray-900 font-medium transition-colors text-sm sm:text-base"
                   >
                     Sign In
                   </button>
                   <button 
                     onClick={handleStartFree}
-                    className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3 sm:px-6 py-2 sm:py-2.5 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl text-xs sm:text-base whitespace-nowrap"
                   >
                     Start Free
                   </button>

@@ -39,32 +39,32 @@ const PricingSection: React.FC = () => {
   };
 
   return (
-    <section id="pricing" className="py-24 bg-gradient-to-br from-gray-50 to-indigo-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-20">
-          <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+    <section id="pricing" className="py-16 sm:py-24 bg-gradient-to-br from-gray-50 to-indigo-50">
+      <div className="max-w-6xl mx-auto px-6 sm:px-6 lg:px-8">
+        <div className="text-center mb-12 sm:mb-20">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 sm:mb-6 px-4">
             Simple, Transparent Pricing
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto px-4">
             Get started with 5 free question generations per month, or upgrade for unlimited access 
             to AI-powered interview questions
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div className="flex flex-col md:grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           {/* Free Plan */}
-          <div className="bg-white rounded-3xl shadow-xl p-8 lg:p-10 border border-gray-200 hover:shadow-2xl transition-shadow duration-300">
-            <div className="text-center mb-10">
+          <div className="bg-white rounded-3xl shadow-xl p-6 sm:p-8 lg:p-10 border border-gray-200 hover:shadow-2xl transition-shadow duration-300 mx-4 sm:mx-0">
+            <div className="text-center mb-8 sm:mb-10">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl mb-6">
                 <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-3">Free Plan</h3>
-              <div className="text-5xl font-bold text-gray-900 mb-3">
-                $0<span className="text-xl text-gray-600 font-normal">/month</span>
+              <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Free Plan</h3>
+              <div className="text-4xl sm:text-5xl font-bold text-gray-900 mb-3">
+                $0<span className="text-lg sm:text-xl text-gray-600 font-normal">/month</span>
               </div>
-              <p className="text-gray-600 text-lg whitespace-nowrap">Perfect for trying out • No credit card required</p>
+              <p className="text-gray-600 text-base sm:text-lg px-2">Perfect for trying out • No credit card required</p>
             </div>
 
             <ul className="space-y-4 mb-8">
@@ -106,24 +106,24 @@ const PricingSection: React.FC = () => {
           </div>
 
           {/* Paid Plan */}
-          <div className="bg-white rounded-3xl shadow-2xl p-8 lg:p-10 border-2 border-indigo-500 relative hover:shadow-3xl transition-shadow duration-300 transform hover:-translate-y-1">
+          <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 lg:p-10 border-2 border-indigo-500 relative hover:shadow-3xl transition-shadow duration-300 transform hover:-translate-y-1 mx-4 sm:mx-0">
             <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-              <span className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
+              <span className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-bold shadow-lg">
                 Most Popular
               </span>
             </div>
 
-            <div className="text-center mb-10">
+            <div className="text-center mb-8 sm:mb-10">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mb-6">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                 </svg>
               </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-3">Pro Plan</h3>
-              <div className="text-5xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3">
-                $6.99<span className="text-xl text-gray-600 font-normal">/month</span>
+              <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Pro Plan</h3>
+              <div className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3">
+                $6.99<span className="text-lg sm:text-xl text-gray-600 font-normal">/month</span>
               </div>
-              <p className="text-gray-600 text-lg">For serious job seekers</p>
+              <p className="text-gray-600 text-base sm:text-lg">For serious job seekers</p>
             </div>
 
             <ul className="space-y-4 mb-8">
