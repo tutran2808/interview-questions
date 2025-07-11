@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: 'Land It AI - Pro Plan',
+              name: 'Next Rounds AI - Pro Plan',
               description: 'Unlimited interview questions and all export formats',
             },
             unit_amount: 699, // $6.99 in cents
