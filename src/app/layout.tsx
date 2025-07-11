@@ -34,9 +34,9 @@ export const metadata: Metadata = {
     siteName: "Next Rounds AI",
     images: [
       {
-        url: "https://nextrounds.ai/logo-horizontal.svg",
-        width: 240,
-        height: 64,
+        url: "https://nextrounds.ai/og-image.png?v=2",
+        width: 1200,
+        height: 630,
         alt: "Next Rounds AI - AI-Powered Interview Question Generator"
       }
     ]
@@ -47,10 +47,12 @@ export const metadata: Metadata = {
     creator: "@nextroundsai", 
     title: "Next Rounds AI - AI-Powered Interview Question Generator",
     description: "Generate personalized interview questions with AI. Free to start, used by thousands of job seekers.",
-    images: ["https://nextrounds.ai/logo-horizontal.svg"]
+    images: ["https://nextrounds.ai/og-image.png?v=2"]
   },
   icons: {
     icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
       { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon.ico", sizes: "any" }
     ],
