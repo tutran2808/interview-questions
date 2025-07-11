@@ -20,6 +20,15 @@ export const metadata: Metadata = {
   authors: [{ name: "Next Rounds AI" }],
   viewport: "width=device-width, initial-scale=1",
   robots: "index, follow",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" }
+    ],
+    apple: [
+      { url: "/apple-touch-icon.svg", sizes: "180x180", type: "image/svg+xml" }
+    ]
+  }
 };
 
 export default function RootLayout({
