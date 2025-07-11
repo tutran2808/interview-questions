@@ -89,7 +89,7 @@ export default function SubscriptionPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Subscription Management</h1>
-          <p className="text-xl text-gray-600">Manage your Next Rounds subscription</p>
+          <p className="text-xl text-gray-600">Manage your Next Rounds AI subscription</p>
         </div>
 
         {/* Current Plan Card */}

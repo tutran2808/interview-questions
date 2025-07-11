@@ -8,14 +8,11 @@ const Footer: React.FC = () => {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-3 mb-6">
               <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <circle cx="12" cy="6" r="2"/>
-                  <circle cx="12" cy="12" r="2"/>
-                  <circle cx="12" cy="18" r="2"/>
-                  <path d="M19 12h-3M8 12H5M12 5V3M12 21v-2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                 </svg>
               </div>
-              <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Next Rounds</h3>
+              <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Next Rounds AI</h3>
             </div>
             <p className="text-gray-300 mb-6 max-w-md text-base sm:text-lg leading-relaxed">
               Generate personalized interview questions powered by AI. 
@@ -59,7 +56,7 @@ const Footer: React.FC = () => {
         <div className="border-t border-gray-800 mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 mb-4 md:mb-0">
-              © 2024 Next Rounds. All rights reserved.
+              © 2024 Next Rounds AI. All rights reserved.
             </p>
             <div className="flex items-center space-x-6 text-sm text-gray-400">
               <span className="flex items-center">

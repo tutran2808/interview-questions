@@ -157,16 +157,13 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
               <div className="flex items-center space-x-2 sm:space-x-3">
                 {/* Logo */}
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
-                  <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="6" r="2"/>
-                    <circle cx="12" cy="12" r="2"/>
-                    <circle cx="12" cy="18" r="2"/>
-                    <path d="M19 12h-3M8 12H5M12 5V3M12 21v-2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                  <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>
                 <div>
                   <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                    Next Rounds
+                    Next Rounds AI
                   </h1>
                 </div>
               </div>
