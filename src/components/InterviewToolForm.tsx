@@ -468,7 +468,7 @@ const InterviewToolForm: React.FC<InterviewToolFormProps> = ({
               <button
                 type="submit"
                 disabled={isGenerating}
-                className="group relative bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-16 py-4 rounded-2xl text-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-lg overflow-hidden"
+                className="group relative bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 sm:px-16 py-4 rounded-2xl text-base sm:text-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-lg overflow-hidden whitespace-nowrap"
               >
                 {/* Shimmer effect */}
                 <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-pulse"></div>
