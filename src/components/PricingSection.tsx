@@ -46,7 +46,7 @@ const PricingSection: React.FC = () => {
             Simple, Transparent Pricing
           </h2>
           <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto px-4">
-            Get started with 5 free question generations per month, or upgrade for unlimited access 
+            Get started with 3 free question generations per month, or upgrade for unlimited access 
             to AI-powered interview questions
           </p>
         </div>
