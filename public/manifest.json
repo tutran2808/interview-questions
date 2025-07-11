@@ -1,0 +1,34 @@
+{
+  "name": "Next Rounds AI - AI-Powered Interview Question Generator",
+  "short_name": "Next Rounds AI",
+  "description": "Generate personalized interview questions with AI. Upload your resume, paste the job description, and get tailored questions for your next interview.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4F46E5",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "32x32",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.svg", 
+      "sizes": "64x64",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.svg",
+      "sizes": "180x180", 
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "education"],
+  "lang": "en",
+  "dir": "ltr"
+}

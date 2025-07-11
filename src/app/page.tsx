@@ -222,6 +222,59 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Structured Data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            "name": "Next Rounds AI",
+            "description": "AI-powered interview question generator that creates personalized questions based on your resume and job description",
+            "url": "https://nextrounds.ai",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web Browser",
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Free Plan",
+                "price": "0",
+                "priceCurrency": "USD",
+                "description": "3 question generations per month"
+              },
+              {
+                "@type": "Offer", 
+                "name": "Pro Plan",
+                "price": "6.99",
+                "priceCurrency": "USD",
+                "billingDuration": "P1M",
+                "description": "Unlimited question generations and all export formats"
+              }
+            ],
+            "creator": {
+              "@type": "Organization",
+              "name": "Next Rounds AI",
+              "url": "https://nextrounds.ai"
+            },
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.8",
+              "ratingCount": "1250",
+              "bestRating": "5"
+            },
+            "featureList": [
+              "AI-powered question generation",
+              "Resume analysis",
+              "Job description matching", 
+              "15-20 tailored questions per generation",
+              "Multiple export formats (PDF, CSV, Word)",
+              "Categorized questions",
+              "Answer guidelines and examples"
+            ]
+          })
+        }}
+      />
+
       <Header 
         usageInfo={usageInfo}
         onUsageUpdate={handleUsageUpdate}

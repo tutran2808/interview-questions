@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://nextrounds.ai/sitemap.xml
+
+# Block API routes from indexing
+Disallow: /api/
+Disallow: /auth/
+
+# Allow important pages
+Allow: /
+Allow: /subscription
