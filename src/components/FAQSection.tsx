@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
+import ContactForm from './ContactForm';
 
 const FAQSection: React.FC = () => {
   const [openItem, setOpenItem] = useState<number | null>(null);
+  const [showContactForm, setShowContactForm] = useState(false);
 
   const faqItems = [
     {
@@ -45,7 +47,15 @@ const FAQSection: React.FC = () => {
   };
 
   return (
-    <section id="faq" className="py-24 bg-white">
+    <>
+      {showContactForm && (
+        <ContactForm 
+          isModal={true}
+          onClose={() => setShowContactForm(false)}
+        />
+      )}
+      
+      <section id="faq" className="py-24 bg-white">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-20">
           <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
@@ -103,13 +113,17 @@ const FAQSection: React.FC = () => {
             <p className="text-gray-600 mb-8 text-lg">
               We're here to help you succeed in your interview preparation.
             </p>
-            <button className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-2xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl">
+            <button 
+              onClick={() => setShowContactForm(true)}
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-2xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
               Contact Support
             </button>
           </div>
         </div>
       </div>
     </section>
+    </>
   );
 };
 
