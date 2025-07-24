@@ -245,6 +245,45 @@ const InterviewToolForm: React.FC<InterviewToolFormProps> = ({
         
         <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-gray-100 p-8 lg:p-12">
         
+        {/* Auth Required Overlay */}
+        {!session && (
+          <div className="absolute inset-0 bg-white/95 backdrop-blur-sm rounded-3xl z-10 flex items-center justify-center">
+            <div className="text-center p-8 max-w-md">
+              <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                Sign Up to Get Started
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Create your free account to access our AI-powered interview question generator and start preparing for your dream job.
+              </p>
+              <button
+                onClick={() => onAuthRequired?.()}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                Sign Up for Free
+              </button>
+              <div className="mt-4 flex items-center justify-center space-x-6 text-sm text-gray-500">
+                <span className="flex items-center">
+                  <svg className="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                  </svg>
+                  3 Free Generations
+                </span>
+                <span className="flex items-center">
+                  <svg className="w-4 h-4 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"></path>
+                  </svg>
+                  No Credit Card
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <form onSubmit={handleSubmit} className="space-y-12">
           {/* Job Description Input */}
           <div className="relative">

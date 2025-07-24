@@ -87,8 +87,14 @@ export default function Home() {
       const { jsPDF } = await import('jspdf');
       const doc = new jsPDF();
       
+      // PDF dimensions and margins
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      const maxWidth = pageWidth - (margin * 2); // 170 for standard A4
+      
       doc.setFontSize(20);
-      doc.text('Interview Questions & Answers', 20, 20);
+      doc.text('Interview Questions & Answers', margin, 20);
       
       let yPosition = 40;
       
@@ -97,32 +103,41 @@ export default function Home() {
         
         // Category title
         doc.setFontSize(16);
-        doc.text(category, 20, yPosition);
-        yPosition += 15;
+        const categoryLines = doc.splitTextToSize(category, maxWidth);
+        doc.text(categoryLines, margin, yPosition);
+        yPosition += categoryLines.length * 8 + 7;
         
         questions.forEach((item, index) => {
+          // Check if we need a new page before adding content
+          if (yPosition > pageHeight - 40) {
+            doc.addPage();
+            yPosition = 20;
+          }
+          
           // Question
           doc.setFontSize(12);
-          doc.text(`${index + 1}. ${item.question}`, 20, yPosition);
-          yPosition += 10;
+          const questionText = `${index + 1}. ${item.question}`;
+          const questionLines = doc.splitTextToSize(questionText, maxWidth);
+          doc.text(questionLines, margin, yPosition);
+          yPosition += questionLines.length * 6 + 5;
           
           // How to Answer
           doc.setFontSize(10);
-          doc.text('How to Answer:', 25, yPosition);
+          doc.text('How to Answer:', margin + 5, yPosition);
           yPosition += 7;
-          const methodLines = doc.splitTextToSize(item.howToAnswer, 160);
-          doc.text(methodLines, 25, yPosition);
+          const methodLines = doc.splitTextToSize(item.howToAnswer, maxWidth - 10);
+          doc.text(methodLines, margin + 5, yPosition);
           yPosition += methodLines.length * 5 + 5;
           
           // Example
-          doc.text('Example Answer:', 25, yPosition);
+          doc.text('Example Answer:', margin + 5, yPosition);
           yPosition += 7;
-          const exampleLines = doc.splitTextToSize(item.example, 160);
-          doc.text(exampleLines, 25, yPosition);
-          yPosition += exampleLines.length * 5 + 15;
+          const exampleLines = doc.splitTextToSize(item.example, maxWidth - 10);
+          doc.text(exampleLines, margin + 5, yPosition);
+          yPosition += exampleLines.length * 5 + 10;
           
-          // New page if needed
-          if (yPosition > 270) {
+          // Check for page break after each question
+          if (yPosition > pageHeight - 40) {
             doc.addPage();
             yPosition = 20;
           }
