@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import UpgradeModal from './UpgradeModal';
+import { analytics, trackFunnel } from '@/lib/analytics';
 
 interface QuestionWithAnswer {
   question: string;
@@ -88,6 +89,7 @@ const InterviewToolForm: React.FC<InterviewToolFormProps> = ({
   const handleFileUpload = (file: File) => {
     if (validateFile(file)) {
       setResumeFile(file);
+      trackFunnel.uploadResume();
     }
   };
 
@@ -140,6 +142,9 @@ const InterviewToolForm: React.FC<InterviewToolFormProps> = ({
         return;
       }
 
+      // Track question generation
+      trackFunnel.submitGeneration();
+
       // Create form data for file upload
       const formData = new FormData();
       formData.append('jobDescription', jobDescription);
@@ -181,6 +186,10 @@ const InterviewToolForm: React.FC<InterviewToolFormProps> = ({
         setUsageInfo(data.usage);
         onUsageUpdate?.(data.usage);
       }
+      
+      // Track successful question generation
+      const questionCount = Object.values(data.questions || data).flat().length;
+      analytics.trackQuestionGeneration(hiringStage, questionCount);
       
       onQuestionsGenerated(data.questions || data);
       

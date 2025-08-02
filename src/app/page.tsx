@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { analytics } from '@/lib/analytics';
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
 import HowItWorksSection from '@/components/HowItWorksSection';
@@ -147,6 +148,10 @@ export default function Home() {
       });
       
       doc.save('interview-questions.pdf');
+      
+      // Track PDF export
+      const questionCount = Object.values(generatedQuestions).flat().length;
+      analytics.trackPDFExport(questionCount);
     } catch (error) {
       console.error('Error exporting PDF:', error);
       alert('Error exporting PDF. Please try again.');

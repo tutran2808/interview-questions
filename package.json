@@ -10,10 +10,12 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@next/third-parties": "^15.4.5",
     "@stripe/stripe-js": "^7.4.0",
     "@supabase/supabase-js": "^2.50.3",
     "@types/multer": "^2.0.0",
     "@types/nodemailer": "^6.4.17",
+    "@vercel/analytics": "^1.5.0",
     "docx": "^9.5.1",
     "file-saver": "^2.0.5",
     "html2canvas": "^1.4.1",

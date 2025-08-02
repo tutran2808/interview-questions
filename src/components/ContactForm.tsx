@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { validateEmail } from '@/utils/emailValidation';
+import { analytics } from '@/lib/analytics';
 
 interface ContactFormProps {
   onClose?: () => void;
@@ -68,6 +69,10 @@ const ContactForm: React.FC<ContactFormProps> = ({ onClose, isModal = false }) =
 
       if (response.ok) {
         setSubmitStatus('success');
+        
+        // Track contact form submission
+        analytics.trackContactForm(formData.subject);
+        
         setFormData({ name: '', email: '', subject: '', message: '' });
         
         // Auto-close modal after success
