@@ -44,7 +44,7 @@ const ProSignupModal: React.FC<ProSignupModalProps> = ({ isOpen, onClose }) => {
 
     try {
       // Step 1: Create account
-      const { error: signUpError, message: signUpMessage } = await signUp(email, password);
+      const { error: signUpError, needsVerification } = await signUp(email, password);
       
       if (signUpError) {
         if (signUpError.message.includes('already') || signUpError.message.includes('exists')) {
@@ -58,9 +58,10 @@ const ProSignupModal: React.FC<ProSignupModalProps> = ({ isOpen, onClose }) => {
         }
       }
       
-      // If there was a successful signup message (even with email issues), continue
-      if (signUpMessage && signUpMessage.includes('Account created successfully')) {
-        console.log('Account created successfully, proceeding to checkout...');
+      // For Pro signup, we'll proceed to checkout even if email verification is needed
+      // The user will be asked to verify later, but payment can proceed
+      if (needsVerification) {
+        console.log('Account created successfully, email verification sent. Proceeding to checkout...');
       }
 
       // Track the Pro signup attempt

@@ -104,37 +104,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `https://nextrounds.ai/auth/callback`,
         },
       });
 
       console.log('Signup response:', { data, error });
 
-      // Handle different types of signup errors
+      // Supabase returns specific error messages for existing users
       if (error) {
         console.log('Signup error:', error);
-        
-        // Handle email configuration issues gracefully
-        if (error.message.includes('Error sending confirmation email') || 
-            error.message.includes('unable to send email') ||
-            error.message.includes('email not configured')) {
-          
-          // Check if user was actually created despite email error
-          if (data.user) {
-            return {
-              error: null,
-              needsVerification: false,
-              message: 'Account created successfully! You can sign in immediately - email confirmation is not required.'
-            };
-          } else {
-            return {
-              error: null,
-              needsVerification: false, 
-              message: 'Account may have been created. Please try signing in with your credentials.'
-            };
-          }
-        }
-        
         return { error };
       }
 
