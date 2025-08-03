@@ -20,8 +20,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body to check for direct signup mode
-    const body = await request.json();
-    const { email: directEmail, mode } = body;
+    let body = {};
+    try {
+      body = await request.json();
+    } catch (error) {
+      console.log('No JSON body provided, using empty object');
+    }
+    const { email: directEmail, mode } = body as { email?: string; mode?: string };
 
     let user: any = null;
     let userEmail: string = '';
