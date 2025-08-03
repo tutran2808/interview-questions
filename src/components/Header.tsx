@@ -36,8 +36,15 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
   };
 
   const handleSignOut = async () => {
-    await signOut();
-    setDropdownOpen(false);
+    try {
+      setDropdownOpen(false);
+      await signOut();
+    } catch (error) {
+      console.error('Error in handleSignOut:', error);
+      // Even if there's an error, close the dropdown and try to refresh
+      setDropdownOpen(false);
+      window.location.href = '/';
+    }
   };
 
   const handleUpgrade = async () => {
