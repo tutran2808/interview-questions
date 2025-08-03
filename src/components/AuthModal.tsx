@@ -69,15 +69,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
             setMessage('An account with this email already exists. Please sign in instead.');
             setTimeout(() => setMode('login'), 3000);
           } else {
-            // For email sending errors, provide helpful message
-            if (signUpError.message.includes('email') || signUpError.message.includes('sending')) {
-              setMessage('Account created! Due to email configuration, you may need to contact support for verification. You can try signing in after a few minutes.');
-            } else {
-              setError(signUpError.message);
-            }
+            setError(signUpError.message);
           }
         } else if (needsVerification) {
-          setMessage(signUpMessage || 'Check your email for the confirmation link!');
+          setMessage(signUpMessage || 'Please check your email for the confirmation link and click it to verify your account.');
         } else {
           setMessage('Account created successfully!');
           onClose();

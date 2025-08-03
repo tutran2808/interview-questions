@@ -104,15 +104,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         password,
         options: {
-          emailRedirectTo: `https://nextrounds.ai/auth/callback`,
+          emailRedirectTo: typeof window !== 'undefined' 
+            ? `${window.location.origin}/auth/callback`
+            : 'https://nextrounds.ai/auth/callback',
         },
       });
 
       console.log('Signup response:', { data, error });
+      console.log('Signup email redirect URL:', typeof window !== 'undefined' 
+        ? `${window.location.origin}/auth/callback`
+        : 'https://nextrounds.ai/auth/callback');
 
       // Supabase returns specific error messages for existing users
       if (error) {
-        console.log('Signup error:', error);
+        console.error('Signup error details:', {
+          message: error.message,
+          status: error.status,
+          name: error.name
+        });
         return { error };
       }
 
@@ -174,7 +183,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetPassword = async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://nextrounds.ai/auth/reset-password',
+        redirectTo: typeof window !== 'undefined' 
+          ? `${window.location.origin}/auth/reset-password`
+          : 'https://nextrounds.ai/auth/reset-password',
       });
 
       return { error };
