@@ -27,19 +27,23 @@ const PricingSection: React.FC = () => {
           'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({}),
       });
 
       const data = await response.json();
+      
+      console.log('Checkout response:', { status: response.status, data });
 
       if (response.ok && data.url) {
         // Redirect to Stripe Checkout
         window.location.href = data.url;
       } else {
+        console.error('Checkout failed:', { status: response.status, error: data.error, data });
         throw new Error(data.error || 'Failed to create checkout session');
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
-      alert('Failed to start checkout process. Please try again.');
+      alert(`Failed to start checkout process: ${error.message}. Please try again.`);
     } finally {
       setLoading(false);
     }
