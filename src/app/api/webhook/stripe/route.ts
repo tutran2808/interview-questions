@@ -48,16 +48,34 @@ export async function POST(request: NextRequest) {
         if (session.metadata?.user_id) {
           console.log('🔄 Updating user to Pro plan:', session.metadata.user_id);
           
-          const { data, error } = await supabaseAdmin
-            .from('users')
-            .update({
-              subscription_plan: 'pro',
-              subscription_status: 'active',
-              stripe_customer_id: session.customer,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', session.metadata.user_id)
-            .select();
+          let updateQuery;
+          
+          if (session.metadata.user_id === 'direct_signup') {
+            // Direct signup flow - find user by email
+            console.log('🔄 Direct signup mode - finding user by email:', session.metadata.user_email);
+            updateQuery = supabaseAdmin
+              .from('users')
+              .update({
+                subscription_plan: 'pro',
+                subscription_status: 'active',
+                stripe_customer_id: session.customer,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('email', session.metadata.user_email);
+          } else {
+            // Regular flow - find user by ID
+            updateQuery = supabaseAdmin
+              .from('users')
+              .update({
+                subscription_plan: 'pro',
+                subscription_status: 'active',
+                stripe_customer_id: session.customer,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', session.metadata.user_id);
+          }
+          
+          const { data, error } = await updateQuery.select();
 
           if (error) {
             console.error('❌ Error updating user subscription:', error);

@@ -1,23 +1,30 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import ProSignupModal from './ProSignupModal';
 
 const PricingSection: React.FC = () => {
   const { session } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [showProSignupModal, setShowProSignupModal] = useState(false);
 
-  const handleUpgrade = async () => {
-    if (!session?.access_token) {
-      alert('Please sign in to upgrade to Pro');
-      return;
+  const handleProSignup = () => {
+    if (session?.access_token) {
+      // User is already signed in, proceed with regular upgrade flow
+      handleUpgradeExistingUser();
+    } else {
+      // User not signed in, show Pro signup modal
+      setShowProSignupModal(true);
     }
+  };
 
+  const handleUpgradeExistingUser = async () => {
     setLoading(true);
 
     try {
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -160,7 +167,7 @@ const PricingSection: React.FC = () => {
             </ul>
 
             <button 
-              onClick={handleUpgrade}
+              onClick={handleProSignup}
               disabled={loading}
               className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-2xl text-lg font-bold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -170,7 +177,7 @@ const PricingSection: React.FC = () => {
                   Processing...
                 </div>
               ) : (
-                'Upgrade to Pro'
+                'Get Started'
               )}
             </button>
           </div>
@@ -203,6 +210,12 @@ const PricingSection: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Pro Signup Modal */}
+        <ProSignupModal 
+          isOpen={showProSignupModal}
+          onClose={() => setShowProSignupModal(false)}
+        />
       </div>
     </section>
   );

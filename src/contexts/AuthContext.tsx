@@ -120,7 +120,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user && !data.session) {
         return { 
           error: null,
-          needsVerification: true 
+          needsVerification: true,
+          message: 'Please check your email for the confirmation link. If you don\'t see it, check your spam folder.'
         };
       }
 

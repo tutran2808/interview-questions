@@ -19,25 +19,41 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Get authorization header
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.error('❌ Missing authorization header');
-      return NextResponse.json({ error: 'Missing or invalid authorization token' }, { status: 401 });
+    // Parse request body to check for direct signup mode
+    const body = await request.json();
+    const { email: directEmail, mode } = body;
+
+    let user: any = null;
+    let userEmail: string = '';
+
+    if (mode === 'subscription_signup' && directEmail) {
+      // Direct signup mode - use provided email
+      userEmail = directEmail;
+      console.log('🔄 Direct signup mode for email:', userEmail);
+    } else {
+      // Regular mode - require authentication
+      const authHeader = request.headers.get('Authorization');
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.error('❌ Missing authorization header');
+        return NextResponse.json({ error: 'Missing or invalid authorization token' }, { status: 401 });
+      }
+
+      const token = authHeader.split(' ')[1];
+      console.log('🔍 Verifying user token...');
+      
+      // Verify the token with Supabase
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+      
+      if (authError || !authUser) {
+        console.error('❌ Auth verification failed:', authError);
+        return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 });
+      }
+
+      user = authUser;
+      userEmail = user.email!;
+      console.log('✅ User authenticated:', userEmail);
     }
 
-    const token = authHeader.split(' ')[1];
-    console.log('🔍 Verifying user token...');
-    
-    // Verify the token with Supabase
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      console.error('❌ Auth verification failed:', authError);
-      return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 });
-    }
-
-    console.log('✅ User authenticated:', user.email);
     console.log('🔄 Creating Stripe checkout session...');
 
     // Create Stripe checkout session
@@ -62,15 +78,17 @@ export async function POST(request: NextRequest) {
       mode: 'subscription',
       success_url: `${request.headers.get('origin')}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${request.headers.get('origin')}/#pricing`,
-      customer_email: user.email,
+      customer_email: userEmail,
       metadata: {
-        user_id: user.id,
-        user_email: user.email!,
+        user_id: user?.id || 'direct_signup',
+        user_email: userEmail,
+        signup_mode: mode || 'regular',
       },
       subscription_data: {
         metadata: {
-          user_id: user.id,
-          user_email: user.email!,
+          user_id: user?.id || 'direct_signup',
+          user_email: userEmail,
+          signup_mode: mode || 'regular',
         },
       },
     });
