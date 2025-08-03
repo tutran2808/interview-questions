@@ -148,7 +148,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, currentUsa
               Processing...
             </div>
           ) : (
-            'Upgrade to Pro - $6.99/month'
+            'Upgrade to Pro - $3.99/month'
           )}
         </button>
 

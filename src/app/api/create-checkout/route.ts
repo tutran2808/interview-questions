@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
               name: 'Next Rounds AI - Pro Plan',
               description: 'Unlimited interview questions and all export formats',
             },
-            unit_amount: 699, // $6.99 in cents
+            unit_amount: 399, // $3.99 in cents
             recurring: {
               interval: 'month',
             },

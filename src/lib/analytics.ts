@@ -68,7 +68,7 @@ export const analytics = {
   },
 
   // Upgrade to Pro
-  trackUpgrade: (plan: string, amount: number) => {
+  trackUpgrade: (plan: string, amount: number = 3.99) => {
     trackEvent('purchase', {
       transaction_id: Date.now().toString(),
       value: amount,

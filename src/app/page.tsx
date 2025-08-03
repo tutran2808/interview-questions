@@ -275,7 +275,7 @@ export default function Home() {
               {
                 "@type": "Offer", 
                 "name": "Pro Plan",
-                "price": "6.99",
+                "price": "3.99",
                 "priceCurrency": "USD",
                 "billingDuration": "P1M",
                 "description": "Unlimited question generations and all export formats"

@@ -121,7 +121,7 @@ const PricingSection: React.FC = () => {
               </div>
               <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Pro Plan</h3>
               <div className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3">
-                $6.99<span className="text-lg sm:text-xl text-gray-600 font-normal">/month</span>
+                $3.99<span className="text-lg sm:text-xl text-gray-600 font-normal">/month</span>
               </div>
               <p className="text-gray-600 text-base sm:text-lg">For serious job seekers</p>
             </div>
