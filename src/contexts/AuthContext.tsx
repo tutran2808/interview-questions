@@ -8,7 +8,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: AuthError | null; needsVerification?: boolean }>;
+  signUp: (email: string, password: string) => Promise<{ error: AuthError | null; needsVerification?: boolean; message?: string }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
@@ -110,9 +110,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('Signup response:', { data, error });
 
-      // Supabase returns specific error messages for existing users
+      // Handle different types of signup errors
       if (error) {
         console.log('Signup error:', error);
+        
+        // Handle email configuration issues gracefully
+        if (error.message.includes('Error sending confirmation email') || 
+            error.message.includes('unable to send email') ||
+            error.message.includes('email not configured')) {
+          
+          // Check if user was actually created despite email error
+          if (data.user) {
+            return {
+              error: null,
+              needsVerification: false,
+              message: 'Account created successfully! You can sign in immediately - email confirmation is not required.'
+            };
+          } else {
+            return {
+              error: null,
+              needsVerification: false, 
+              message: 'Account may have been created. Please try signing in with your credentials.'
+            };
+          }
+        }
+        
         return { error };
       }
 

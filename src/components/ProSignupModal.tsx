@@ -44,7 +44,7 @@ const ProSignupModal: React.FC<ProSignupModalProps> = ({ isOpen, onClose }) => {
 
     try {
       // Step 1: Create account
-      const { error: signUpError } = await signUp(email, password);
+      const { error: signUpError, message: signUpMessage } = await signUp(email, password);
       
       if (signUpError) {
         if (signUpError.message.includes('already') || signUpError.message.includes('exists')) {
@@ -56,6 +56,11 @@ const ProSignupModal: React.FC<ProSignupModalProps> = ({ isOpen, onClose }) => {
           setLoading(false);
           return;
         }
+      }
+      
+      // If there was a successful signup message (even with email issues), continue
+      if (signUpMessage && signUpMessage.includes('Account created successfully')) {
+        console.log('Account created successfully, proceeding to checkout...');
       }
 
       // Track the Pro signup attempt
