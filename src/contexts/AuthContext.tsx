@@ -146,8 +146,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Directly attempt signup - let Supabase handle duplicate detection
-      console.log('Attempting signup...');
+      // First, check if user already exists in the database
+      console.log('Checking if user exists in database...');
+      const { data: existingUsers, error: checkError } = await supabase
+        .from('users')
+        .select('id, email, created_at')
+        .eq('email', email)
+        .limit(1);
+      
+      if (checkError) {
+        console.log('Error checking existing users:', checkError);
+        // Continue with signup if we can't check
+      } else if (existingUsers && existingUsers.length > 0) {
+        console.log('User already exists in database:', existingUsers[0]);
+        return {
+          error: {
+            message: 'An account with this email already exists. Please sign in instead.',
+            name: 'UserAlreadyExists',
+            status: 400
+          } as any
+        };
+      }
+      
+      // Proceed with signup
+      console.log('User not found in database, proceeding with signup...');
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
