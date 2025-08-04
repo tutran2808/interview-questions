@@ -153,12 +153,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
       });
       
-      // If sign in succeeds, user already exists
+      // If sign in succeeds, user already exists - DON'T auto sign them in during signup
       if (!signInError) {
-        console.log('User already exists and credentials are correct');
+        console.log('User already exists and credentials are correct - showing error instead of auto-signin');
+        // Sign out immediately to prevent auto-login
+        await supabase.auth.signOut();
         return { 
           error: { 
-            message: 'User already registered with this email. You have been signed in automatically.',
+            message: 'An account with this email already exists. Please use the Sign In option instead.',
             name: 'UserAlreadyExists',
             status: 400
           } as any 
