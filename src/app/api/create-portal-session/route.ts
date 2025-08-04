@@ -70,10 +70,16 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ Portal session created:', portalSession.id);
       return NextResponse.json({ url: portalSession.url });
-    } catch (stripeError) {
-      console.error('❌ Stripe portal creation error:', stripeError);
+    } catch (stripeError: any) {
+      console.error('❌ Stripe portal creation error:', {
+        message: stripeError.message,
+        type: stripeError.type,
+        code: stripeError.code,
+        statusCode: stripeError.statusCode,
+        raw: stripeError
+      });
       return NextResponse.json({ 
-        error: 'Failed to create billing portal session. Please try again or contact support.' 
+        error: `Stripe error: ${stripeError.message || 'Failed to create billing portal session'}` 
       }, { status: 500 });
     }
 
