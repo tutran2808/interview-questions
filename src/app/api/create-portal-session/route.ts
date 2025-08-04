@@ -45,8 +45,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!dbUser.stripe_customer_id) {
-      console.error('❌ No Stripe customer ID found for user');
-      return NextResponse.json({ error: 'No subscription found. Please contact support.' }, { status: 400 });
+      console.error('❌ No Stripe customer ID found for user:', dbUser.email);
+      return NextResponse.json({ 
+        error: 'You don\'t have an active subscription yet. Please upgrade to Pro first to manage your subscription.' 
+      }, { status: 400 });
     }
 
     console.log('🔄 Creating portal session for customer:', dbUser.stripe_customer_id);

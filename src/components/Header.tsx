@@ -152,7 +152,13 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
       }
     } catch (error) {
       console.error('Error opening customer portal:', error);
-      alert('Unable to open subscription management. Please try again.');
+      
+      // Show a more helpful error message
+      if (data?.error && data.error.includes('subscription')) {
+        alert('You need to upgrade to Pro first before you can manage your subscription.');
+      } else {
+        alert('Unable to open subscription management. Please try again.');
+      }
     }
   };
 
