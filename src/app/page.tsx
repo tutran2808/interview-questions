@@ -602,8 +602,11 @@ export default function Home() {
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <button 
                       onClick={scrollToTool}
-                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-medium transition-colors"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-xl font-semibold transition-colors shadow-lg hover:shadow-xl flex items-center text-lg"
                     >
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
                       Generate New Questions
                     </button>
                     
