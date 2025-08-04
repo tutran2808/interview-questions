@@ -202,6 +202,27 @@ export default function Home() {
       const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 20;
       const maxWidth = pageWidth - (margin * 2); // 170 for standard A4
+      const bottomMargin = 30; // Reserve space at bottom of page
+      
+      // Helper function to add text with proper page breaks
+      const addTextWithPageBreak = (text: string, x: number, y: number, fontSize: number, lineHeight: number) => {
+        doc.setFontSize(fontSize);
+        const lines = doc.splitTextToSize(text, maxWidth - (x - margin));
+        let currentY = y;
+        
+        for (let i = 0; i < lines.length; i++) {
+          // Check if we need a new page
+          if (currentY + lineHeight > pageHeight - bottomMargin) {
+            doc.addPage();
+            currentY = margin;
+          }
+          
+          doc.text(lines[i], x, currentY);
+          currentY += lineHeight;
+        }
+        
+        return currentY;
+      };
       
       doc.setFontSize(20);
       doc.text('Interview Questions & Answers', margin, 20);
@@ -211,46 +232,55 @@ export default function Home() {
       Object.entries(generatedQuestions).forEach(([category, questions]) => {
         if (category === 'mock' || category === 'message') return;
         
+        // Check if we need a new page for category
+        if (yPosition > pageHeight - bottomMargin - 30) {
+          doc.addPage();
+          yPosition = margin;
+        }
+        
         // Category title
-        doc.setFontSize(16);
-        const categoryLines = doc.splitTextToSize(category, maxWidth);
-        doc.text(categoryLines, margin, yPosition);
-        yPosition += categoryLines.length * 8 + 7;
+        yPosition = addTextWithPageBreak(category, margin, yPosition, 16, 8);
+        yPosition += 7;
         
         questions.forEach((item, index) => {
-          // Check if we need a new page before adding content
-          if (yPosition > pageHeight - 40) {
+          // Check if we need a new page for question
+          if (yPosition > pageHeight - bottomMargin - 50) {
             doc.addPage();
-            yPosition = 20;
+            yPosition = margin;
           }
           
           // Question
-          doc.setFontSize(12);
           const questionText = `${index + 1}. ${item.question}`;
-          const questionLines = doc.splitTextToSize(questionText, maxWidth);
-          doc.text(questionLines, margin, yPosition);
-          yPosition += questionLines.length * 6 + 5;
+          yPosition = addTextWithPageBreak(questionText, margin, yPosition, 12, 6);
+          yPosition += 5;
           
-          // How to Answer
+          // How to Answer header
+          if (yPosition > pageHeight - bottomMargin - 20) {
+            doc.addPage();
+            yPosition = margin;
+          }
+          
           doc.setFontSize(10);
           doc.text('How to Answer:', margin + 5, yPosition);
           yPosition += 7;
-          const methodLines = doc.splitTextToSize(item.howToAnswer, maxWidth - 10);
-          doc.text(methodLines, margin + 5, yPosition);
-          yPosition += methodLines.length * 5 + 5;
           
-          // Example
+          // How to Answer content
+          yPosition = addTextWithPageBreak(item.howToAnswer, margin + 5, yPosition, 10, 5);
+          yPosition += 5;
+          
+          // Example Answer header
+          if (yPosition > pageHeight - bottomMargin - 20) {
+            doc.addPage();
+            yPosition = margin;
+          }
+          
+          doc.setFontSize(10);
           doc.text('Example Answer:', margin + 5, yPosition);
           yPosition += 7;
-          const exampleLines = doc.splitTextToSize(item.example, maxWidth - 10);
-          doc.text(exampleLines, margin + 5, yPosition);
-          yPosition += exampleLines.length * 5 + 10;
           
-          // Check for page break after each question
-          if (yPosition > pageHeight - 40) {
-            doc.addPage();
-            yPosition = 20;
-          }
+          // Example Answer content
+          yPosition = addTextWithPageBreak(item.example, margin + 5, yPosition, 10, 5);
+          yPosition += 10;
         });
         
         yPosition += 10;
