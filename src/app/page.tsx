@@ -68,27 +68,45 @@ export default function Home() {
       if (accessToken && refreshToken) {
         console.log('Attempting to restore session...');
         
-        // Store tokens in localStorage so Supabase can pick them up
+        // Use the exact same approach as the URL hash fragment that Supabase uses
         try {
-          const sessionData = {
-            access_token: accessToken,
-            refresh_token: refreshToken,
-            expires_at: expiresAt ? parseInt(expiresAt) : undefined,
-            token_type: 'bearer',
-            user: null
-          };
-          
-          console.log('Storing session in localStorage...');
-          localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
-          
-          // Force a page reload to let Supabase naturally pick up the session
-          console.log('Reloading page to activate session...');
-          setVerificationMessage('Email verified successfully! Signing you in...');
-          
-          // Small delay before reload to show the message
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
+          console.log('Using direct setSession approach...');
+          import('@/lib/supabase').then(({ supabase }) => {
+            // Create session object exactly as Supabase expects
+            const sessionData = {
+              access_token: accessToken,
+              refresh_token: refreshToken,
+              expires_at: expiresAt ? parseInt(expiresAt) : Math.floor(Date.now() / 1000) + 3600,
+              expires_in: 3600,
+              token_type: 'bearer'
+            };
+            
+            console.log('Calling setSession with:', sessionData);
+            
+            // Use setSession and wait for it
+            supabase.auth.setSession(sessionData).then(({ data, error }) => {
+              console.log('setSession result:', { data, error, user: data?.user?.email });
+              
+              if (error) {
+                console.error('setSession failed:', error);
+                setVerificationMessage('Email verified, but please sign in manually.');
+              } else {
+                console.log('setSession succeeded, user should be logged in');
+                setVerificationMessage('Email verified successfully! You are now signed in.');
+                
+                // Manually trigger a state update to ensure UI reflects the login
+                setTimeout(() => {
+                  window.location.reload();
+                }, 500);
+              }
+              
+              setTimeout(() => setVerificationMessage(''), 5000);
+            }).catch((err) => {
+              console.error('setSession error:', err);
+              setVerificationMessage('Email verified, but please sign in manually.');
+              setTimeout(() => setVerificationMessage(''), 5000);
+            });
+          });
           
         } catch (storageError) {
           console.error('Error storing session:', storageError);
