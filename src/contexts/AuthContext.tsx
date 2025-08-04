@@ -209,32 +209,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       console.log('Attempting to sign out...');
       
-      // Clear local state first to ensure UI updates
+      // Clear local state IMMEDIATELY to ensure UI updates
       setUser(null);
       setSession(null);
       
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error signing out from Supabase:', error);
-        // Even if Supabase signout fails, we've cleared local state
-        // This ensures the UI shows signed out state
-      } else {
-        console.log('Successfully signed out from Supabase');
+      // Clear all storage immediately
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Try to sign out from Supabase with timeout
+      const signOutPromise = supabase.auth.signOut();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('SignOut timeout')), 3000)
+      );
+      
+      try {
+        const { error } = await Promise.race([signOutPromise, timeoutPromise]) as any;
+        if (error) {
+          console.error('Error signing out from Supabase:', error);
+        } else {
+          console.log('Successfully signed out from Supabase');
+        }
+      } catch (timeoutError) {
+        console.warn('SignOut timed out, proceeding with force logout:', timeoutError);
       }
       
-      // Force a page refresh to ensure clean state
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 100);
+      // Always force a page refresh regardless of Supabase signOut result
+      console.log('Forcing page refresh for clean logout...');
+      window.location.href = '/';
       
     } catch (error) {
       console.error('Unexpected error during signout:', error);
-      // Still clear local state and redirect even on error
+      // Force logout regardless of any errors
       setUser(null);
       setSession(null);
+      localStorage.clear();
+      sessionStorage.clear();
       window.location.href = '/';
-    } finally {
-      setLoading(false);
     }
   };
 

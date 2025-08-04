@@ -51,11 +51,23 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
   const handleSignOut = async () => {
     try {
       setDropdownOpen(false);
+      console.log('Header: Starting signOut process...');
+      
+      // Start the signOut process but don't wait forever
+      const signOutTimeout = setTimeout(() => {
+        console.warn('Header: SignOut taking too long, forcing refresh...');
+        window.location.href = '/';
+      }, 5000);
+      
       await signOut();
+      clearTimeout(signOutTimeout);
+      
     } catch (error) {
       console.error('Error in handleSignOut:', error);
-      // Even if there's an error, close the dropdown and try to refresh
+      // Force refresh immediately on any error
       setDropdownOpen(false);
+      localStorage.clear();
+      sessionStorage.clear();
       window.location.href = '/';
     }
   };
