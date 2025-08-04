@@ -29,6 +29,7 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [verificationMessage, setVerificationMessage] = useState('');
   
   // Check for login query parameter and verification status
@@ -81,6 +82,7 @@ export default function Home() {
           // Auto-open sign-in modal after a brief delay
           setTimeout(() => {
             console.log('Opening sign-in modal for verified user');
+            setAuthModalMode('login'); // Ensure it's login mode
             setAuthModalOpen(true);
           }, 2000);
           
@@ -91,6 +93,7 @@ export default function Home() {
           console.error('Error parsing access token:', tokenError);
           setVerificationMessage('Email verified successfully! Please sign in to continue.');
           setTimeout(() => {
+            setAuthModalMode('login'); // Ensure it's login mode
             setAuthModalOpen(true);
           }, 2000);
         }
@@ -420,7 +423,10 @@ export default function Home() {
               onQuestionsGenerated={handleQuestionsGenerated}
               isGenerating={isGenerating}
               setIsGenerating={setIsGenerating}
-              onAuthRequired={() => setAuthModalOpen(true)}
+              onAuthRequired={() => {
+                setAuthModalMode('signup'); // Default to signup for new users
+                setAuthModalOpen(true);
+              }}
               onUsageUpdate={handleUsageUpdate}
             />
           </div>
@@ -645,7 +651,7 @@ export default function Home() {
       <AuthModal 
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
-        initialMode="signup"
+        initialMode={authModalMode}
       />
     </div>
   );
