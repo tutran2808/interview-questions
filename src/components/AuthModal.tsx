@@ -20,6 +20,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
   }, [initialMode]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  
+  // Pre-populate email if user just verified
+  useEffect(() => {
+    const verifiedEmail = sessionStorage.getItem('verified_email');
+    if (verifiedEmail && mode === 'login') {
+      setEmail(verifiedEmail);
+      sessionStorage.removeItem('verified_email'); // Clean up after use
+    }
+  }, [mode, isOpen]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');

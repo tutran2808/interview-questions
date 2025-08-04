@@ -66,74 +66,33 @@ export default function Home() {
       });
       
       if (accessToken && refreshToken) {
-        console.log('Attempting to restore session...');
+        console.log('Email verification successful with tokens');
         
-        // Use the exact same approach as the URL hash fragment that Supabase uses
+        // Since setSession is consistently failing, provide a better UX
+        // Extract email from the JWT token
         try {
-          console.log('Using direct setSession approach...');
-          import('@/lib/supabase').then(({ supabase }) => {
-            // Create session object exactly as Supabase expects
-            const sessionData = {
-              access_token: accessToken,
-              refresh_token: refreshToken,
-              expires_at: expiresAt ? parseInt(expiresAt) : Math.floor(Date.now() / 1000) + 3600,
-              expires_in: 3600,
-              token_type: 'bearer'
-            };
-            
-            console.log('Calling setSession with session data:', JSON.stringify(sessionData, null, 2));
-            
-            // Add a timeout to detect hanging setSession calls
-            const setSessionTimeout = setTimeout(() => {
-              console.error('setSession is taking too long, likely hanging');
-              setVerificationMessage('Email verified, but having trouble signing you in automatically. Please sign in manually.');
-              setTimeout(() => setVerificationMessage(''), 5000);
-            }, 5000);
-            
-            // Use setSession and wait for it
-            supabase.auth.setSession(sessionData).then(({ data, error }) => {
-              clearTimeout(setSessionTimeout);
-              console.log('setSession result:', { 
-                data: data ? {
-                  user: data.user?.email,
-                  session: !!data.session
-                } : null, 
-                error: error ? {
-                  message: error.message,
-                  status: error.status
-                } : null
-              });
-              
-              if (error) {
-                console.error('setSession failed with error:', error);
-                setVerificationMessage('Email verified, but please sign in manually.');
-              } else if (data?.user) {
-                console.log('setSession succeeded! User:', data.user.email);
-                setVerificationMessage('Email verified successfully! You are now signed in.');
-                
-                // Force UI update by reloading after a short delay
-                setTimeout(() => {
-                  console.log('Reloading to refresh UI...');
-                  window.location.reload();
-                }, 500);
-              } else {
-                console.warn('setSession completed but no user data returned');
-                setVerificationMessage('Email verified, but please sign in manually.');
-              }
-              
-              setTimeout(() => setVerificationMessage(''), 5000);
-            }).catch((err) => {
-              clearTimeout(setSessionTimeout);
-              console.error('setSession error caught:', err);
-              setVerificationMessage('Email verified, but please sign in manually.');
-              setTimeout(() => setVerificationMessage(''), 5000);
-            });
-          });
+          const payload = JSON.parse(atob(accessToken.split('.')[1]));
+          const email = payload.email;
+          console.log('Extracted email from token:', email);
           
-        } catch (storageError) {
-          console.error('Error storing session:', storageError);
-          setVerificationMessage('Email verified, but please sign in manually.');
-          setTimeout(() => setVerificationMessage(''), 5000);
+          // Show success message and open sign-in modal
+          setVerificationMessage('🎉 Email verified successfully! Please sign in to continue.');
+          
+          // Auto-open sign-in modal after a brief delay
+          setTimeout(() => {
+            console.log('Opening sign-in modal for verified user');
+            setAuthModalOpen(true);
+          }, 2000);
+          
+          // Store email for potential pre-population (if we want to add that feature later)
+          sessionStorage.setItem('verified_email', email);
+          
+        } catch (tokenError) {
+          console.error('Error parsing access token:', tokenError);
+          setVerificationMessage('Email verified successfully! Please sign in to continue.');
+          setTimeout(() => {
+            setAuthModalOpen(true);
+          }, 2000);
         }
       } else {
         console.log('No session tokens found, showing basic verification message');
