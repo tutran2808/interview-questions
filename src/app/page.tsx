@@ -34,16 +34,30 @@ export default function Home() {
   // Check for login query parameter and verification status
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1)); // Remove the '#' and parse
+    
+    console.log('Checking URL params:', {
+      search: window.location.search,
+      hash: window.location.hash,
+      hasVerifiedInQuery: urlParams.has('verified'),
+      hasAccessTokenInHash: hashParams.has('access_token'),
+      type: hashParams.get('type')
+    });
     
     if (urlParams.get('login') === 'true') {
       setAuthModalOpen(true);
     }
     
     // Handle email verification with session restoration
-    if (urlParams.get('verified') === 'true') {
-      const accessToken = urlParams.get('access_token');
-      const refreshToken = urlParams.get('refresh_token');
-      const expiresAt = urlParams.get('expires_at');
+    // Check for Supabase auth tokens in URL fragment (default behavior)
+    const isSignupConfirmation = hashParams.get('type') === 'signup';
+    const isEmailVerification = urlParams.get('verified') === 'true' || isSignupConfirmation;
+    
+    if (isEmailVerification) {
+      // Try to get tokens from hash params first (Supabase default), then query params (our custom approach)
+      const accessToken = hashParams.get('access_token') || urlParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token') || urlParams.get('refresh_token');
+      const expiresAt = hashParams.get('expires_at') || urlParams.get('expires_at');
       
       console.log('Email verification detected:', {
         hasAccessToken: !!accessToken,
@@ -94,16 +108,26 @@ export default function Home() {
       }
     }
     
-    // Clean up URL (remove all auth-related parameters)
-    const paramsToRemove = ['login', 'verified', 'access_token', 'refresh_token', 'expires_at'];
+    // Clean up URL (remove all auth-related parameters from both query and hash)
+    const paramsToRemove = ['login', 'verified', 'access_token', 'refresh_token', 'expires_at', 'expires_in', 'token_type', 'type'];
     let hasAuthParams = false;
+    
+    // Check query params
     paramsToRemove.forEach(param => {
       if (urlParams.has(param)) {
         hasAuthParams = true;
       }
     });
     
+    // Check hash params
+    paramsToRemove.forEach(param => {
+      if (hashParams.has(param)) {
+        hasAuthParams = true;
+      }
+    });
+    
     if (hasAuthParams) {
+      console.log('Cleaning up URL with auth params');
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
