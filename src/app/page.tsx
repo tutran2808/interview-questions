@@ -28,11 +28,15 @@ export default function Home() {
   
   // Clear verification message when user signs in
   useEffect(() => {
-    if (user && verificationMessage) {
-      console.log('User signed in, clearing verification message');
-      setVerificationMessage('');
+    try {
+      if (user && verificationMessage) {
+        console.log('User signed in, clearing verification message');
+        setVerificationMessage('');
+      }
+    } catch (error) {
+      console.error('Error in verification message cleanup:', error);
     }
-  }, [user, verificationMessage]);
+  }, [user]); // Only depend on user, not verificationMessage to avoid infinite loop
   const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestions | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
@@ -42,8 +46,9 @@ export default function Home() {
   
   // Check for login query parameter and verification status
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const hashParams = new URLSearchParams(window.location.hash.substring(1)); // Remove the '#' and parse
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1)); // Remove the '#' and parse
     
     console.log('Checking URL params:', {
       search: window.location.search,
@@ -134,6 +139,12 @@ export default function Home() {
     if (hasAuthParams) {
       console.log('Cleaning up URL with auth params');
       window.history.replaceState({}, '', window.location.pathname);
+    }
+    
+    } catch (error) {
+      console.error('Error in URL parameter processing:', error);
+      // Set a safe state if URL processing fails
+      setVerificationMessage('');
     }
   }, []);
   const [usageInfo, setUsageInfo] = useState<{current: number, limit: number, remaining: number} | null>(null);
