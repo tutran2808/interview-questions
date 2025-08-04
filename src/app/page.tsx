@@ -67,39 +67,34 @@ export default function Home() {
       
       if (accessToken && refreshToken) {
         console.log('Attempting to restore session...');
-        // Restore session client-side
-        import('@/lib/supabase').then(({ supabase }) => {
+        
+        // Store tokens in localStorage so Supabase can pick them up
+        try {
           const sessionData = {
             access_token: accessToken,
             refresh_token: refreshToken,
             expires_at: expiresAt ? parseInt(expiresAt) : undefined,
-            expires_in: expiresAt ? parseInt(expiresAt) - Math.floor(Date.now() / 1000) : 3600,
             token_type: 'bearer',
-            user: null // Will be populated automatically
+            user: null
           };
           
-          console.log('Setting session with data:', {
-            hasAccessToken: !!sessionData.access_token,
-            hasRefreshToken: !!sessionData.refresh_token,
-            expiresAt: sessionData.expires_at,
-            expiresIn: sessionData.expires_in
-          });
+          console.log('Storing session in localStorage...');
+          localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
           
-          supabase.auth.setSession(sessionData).then(({ data, error }) => {
-            if (error) {
-              console.error('Error restoring session:', error);
-              setVerificationMessage('Email verified, but please sign in manually.');
-            } else {
-              console.log('Session restored successfully:', {
-                user: data.user?.email,
-                session: !!data.session
-              });
-              setVerificationMessage('Email verified successfully! You are now signed in.');
-            }
-            // Clear message after 5 seconds
-            setTimeout(() => setVerificationMessage(''), 5000);
-          });
-        });
+          // Force a page reload to let Supabase naturally pick up the session
+          console.log('Reloading page to activate session...');
+          setVerificationMessage('Email verified successfully! Signing you in...');
+          
+          // Small delay before reload to show the message
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+          
+        } catch (storageError) {
+          console.error('Error storing session:', storageError);
+          setVerificationMessage('Email verified, but please sign in manually.');
+          setTimeout(() => setVerificationMessage(''), 5000);
+        }
       } else {
         console.log('No session tokens found, showing basic verification message');
         setVerificationMessage('Email verified successfully! Please sign in to continue.');
