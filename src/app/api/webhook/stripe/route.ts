@@ -120,38 +120,14 @@ export async function POST(request: NextRequest) {
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object as any;
-        console.log('Subscription updated:', subscription.id);
+        console.log('🔄 Subscription updated:', {
+          subscriptionId: subscription.id,
+          status: subscription.status,
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          currentPeriodEnd: subscription.current_period_end
+        });
 
         // Find user by customer ID and update subscription status
-        const { data: users } = await supabaseAdmin
-          .from('users')
-          .select('id')
-          .eq('stripe_customer_id', subscription.customer)
-          .limit(1);
-
-        if (users && users.length > 0) {
-          const status = subscription.status === 'active' ? 'active' : 'inactive';
-          
-          const { error } = await supabaseAdmin
-            .from('users')
-            .update({
-              subscription_status: status,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', users[0].id);
-
-          if (error) {
-            console.error('Error updating subscription status:', error);
-          }
-        }
-        break;
-      }
-
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object as any;
-        console.log('🚫 Subscription cancelled:', subscription.id);
-
-        // Find user by customer ID and downgrade to free plan
         const { data: users } = await supabaseAdmin
           .from('users')
           .select('id, email')
@@ -159,13 +135,73 @@ export async function POST(request: NextRequest) {
           .limit(1);
 
         if (users && users.length > 0) {
-          console.log('🔄 Downgrading user to free plan:', users[0].email);
+          // Handle different subscription states
+          let plan = 'free';
+          let status = 'inactive';
+          
+          if (subscription.status === 'active') {
+            plan = 'pro';
+            status = 'active';
+          } else if (subscription.cancel_at_period_end) {
+            // Subscription is set to cancel at period end, but still active
+            plan = 'pro';
+            status = 'active'; // Keep Pro access until period ends
+            console.log('🔔 Subscription will cancel at period end, keeping Pro access until:', new Date(subscription.current_period_end * 1000));
+          }
+          
+          const { error } = await supabaseAdmin
+            .from('users')
+            .update({
+              subscription_plan: plan,
+              subscription_status: status,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', users[0].id);
+
+          if (error) {
+            console.error('❌ Error updating subscription status:', error);
+          } else {
+            console.log('✅ Subscription updated for user:', users[0].email, { plan, status });
+          }
+        }
+        break;
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as any;
+        console.log('🚫 Subscription cancelled:', {
+          subscriptionId: subscription.id,
+          customerId: subscription.customer,
+          status: subscription.status,
+          canceledAt: subscription.canceled_at
+        });
+
+        // Find user by customer ID and downgrade to free plan
+        const { data: users, error: lookupError } = await supabaseAdmin
+          .from('users')
+          .select('id, email, subscription_plan, subscription_status')
+          .eq('stripe_customer_id', subscription.customer)
+          .limit(1);
+
+        console.log('🔍 User lookup result:', { users, lookupError, customerId: subscription.customer });
+
+        if (lookupError) {
+          console.error('❌ Error looking up user:', lookupError);
+          return;
+        }
+
+        if (users && users.length > 0) {
+          console.log('🔄 Downgrading user to free plan:', {
+            email: users[0].email,
+            currentPlan: users[0].subscription_plan,
+            currentStatus: users[0].subscription_status
+          });
           
           const { data, error } = await supabaseAdmin
             .from('users')
             .update({
               subscription_plan: 'free',
-              subscription_status: 'inactive',
+              subscription_status: 'canceled',
               updated_at: new Date().toISOString(),
             })
             .eq('id', users[0].id)
@@ -178,6 +214,14 @@ export async function POST(request: NextRequest) {
           }
         } else {
           console.error('❌ No user found for customer:', subscription.customer);
+          
+          // Debug: Let's see what customers we have
+          const { data: allUsers } = await supabaseAdmin
+            .from('users')
+            .select('email, stripe_customer_id')
+            .not('stripe_customer_id', 'is', null)
+            .limit(5);
+          console.log('📋 Users with Stripe customer IDs:', allUsers);
         }
         break;
       }
