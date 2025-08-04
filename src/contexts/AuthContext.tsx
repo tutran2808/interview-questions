@@ -146,27 +146,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // First, check if user already exists in the database
-      console.log('Checking if user exists in database...');
-      const { data: existingUsers, error: checkError } = await supabase
-        .from('users')
-        .select('id, email, created_at')
-        .eq('email', email)
-        .limit(1);
-      
-      if (checkError) {
-        console.log('Error checking existing users:', checkError);
-        // Continue with signup if we can't check
-      } else if (existingUsers && existingUsers.length > 0) {
-        console.log('User already exists in database:', existingUsers[0]);
-        return {
-          error: {
-            message: 'An account with this email already exists. Please sign in instead.',
-            name: 'UserAlreadyExists',
-            status: 400
-          } as any
-        };
-      }
+      // Skip the database check for now and rely on Supabase's built-in handling
+      // The direct database query was hanging due to RLS policies
+      console.log('Proceeding with signup, will check response for duplicates...');
       
       // Proceed with signup
       console.log('User not found in database, proceeding with signup...');
@@ -223,24 +205,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user && !data.session) {
         console.log('User returned without session, checking for duplicates...');
         
-        // Check multiple indicators that this might be an existing user
-        const isExistingUser = 
-          // User was created more than 1 minute ago
-          (data.user.created_at && new Date().getTime() - new Date(data.user.created_at).getTime() > 60000) ||
-          // User email is already confirmed (existing users have this)
-          (data.user.email_confirmed_at) ||
-          // Check if user_metadata suggests existing user
-          (data.user.user_metadata && Object.keys(data.user.user_metadata).length > 0);
+        // Based on your logs, for existing users Supabase returns the original creation date
+        // For new users, it should be very recent (within last few seconds)
+        const createdAt = new Date(data.user.created_at);
+        const now = new Date();
+        const timeDiffSeconds = (now.getTime() - createdAt.getTime()) / 1000;
         
-        console.log('Duplicate check results:', {
+        console.log('Time analysis:', {
           created_at: data.user.created_at,
-          email_confirmed_at: data.user.email_confirmed_at,
-          user_metadata: data.user.user_metadata,
-          isExistingUser
+          now: now.toISOString(),
+          timeDiffSeconds: timeDiffSeconds,
+          isOlderThan30Seconds: timeDiffSeconds > 30
         });
         
-        if (isExistingUser) {
-          console.log('Detected existing user attempting signup');
+        // If user was created more than 30 seconds ago, it's likely an existing user
+        if (timeDiffSeconds > 30) {
+          console.log('User created more than 30 seconds ago - likely existing user');
           return { 
             error: { 
               message: 'An account with this email already exists. Please sign in instead.',
