@@ -45,29 +45,50 @@ export default function Home() {
       const refreshToken = urlParams.get('refresh_token');
       const expiresAt = urlParams.get('expires_at');
       
+      console.log('Email verification detected:', {
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
+        expiresAt: expiresAt
+      });
+      
       if (accessToken && refreshToken) {
+        console.log('Attempting to restore session...');
         // Restore session client-side
         import('@/lib/supabase').then(({ supabase }) => {
-          supabase.auth.setSession({
+          const sessionData = {
             access_token: accessToken,
             refresh_token: refreshToken,
             expires_at: expiresAt ? parseInt(expiresAt) : undefined,
             expires_in: expiresAt ? parseInt(expiresAt) - Math.floor(Date.now() / 1000) : 3600,
             token_type: 'bearer',
             user: null // Will be populated automatically
-          }).then(({ data, error }) => {
+          };
+          
+          console.log('Setting session with data:', {
+            hasAccessToken: !!sessionData.access_token,
+            hasRefreshToken: !!sessionData.refresh_token,
+            expiresAt: sessionData.expires_at,
+            expiresIn: sessionData.expires_in
+          });
+          
+          supabase.auth.setSession(sessionData).then(({ data, error }) => {
             if (error) {
               console.error('Error restoring session:', error);
+              setVerificationMessage('Email verified, but please sign in manually.');
             } else {
-              console.log('Session restored successfully:', data.user?.email);
+              console.log('Session restored successfully:', {
+                user: data.user?.email,
+                session: !!data.session
+              });
               setVerificationMessage('Email verified successfully! You are now signed in.');
-              // Clear message after 5 seconds
-              setTimeout(() => setVerificationMessage(''), 5000);
             }
+            // Clear message after 5 seconds
+            setTimeout(() => setVerificationMessage(''), 5000);
           });
         });
       } else {
-        setVerificationMessage('Email verified successfully! You are now signed in.');
+        console.log('No session tokens found, showing basic verification message');
+        setVerificationMessage('Email verified successfully! Please sign in to continue.');
         // Clear message after 5 seconds
         setTimeout(() => setVerificationMessage(''), 5000);
       }

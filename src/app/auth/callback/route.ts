@@ -40,23 +40,27 @@ export async function GET(request: NextRequest) {
 
       console.log('Email verification successful:', {
         user: data.user?.email,
-        session: !!data.session
+        session: !!data.session,
+        accessToken: data.session?.access_token ? 'present' : 'missing',
+        refreshToken: data.session?.refresh_token ? 'present' : 'missing',
+        expiresAt: data.session?.expires_at
       });
       
-      // Create redirect response
-      const redirectUrl = new URL('/?verified=true&auto_login=true', request.url);
-      const response = NextResponse.redirect(redirectUrl);
-      
-      // Store session data in localStorage via a script injection approach
-      // This is better handled client-side, so let's redirect with session info
       if (data.session) {
-        // Store the session tokens as URL parameters temporarily for client-side pickup
+        // Create redirect response with session tokens
+        const redirectUrl = new URL('/', request.url);
+        redirectUrl.searchParams.set('verified', 'true');
         redirectUrl.searchParams.set('access_token', data.session.access_token);
         redirectUrl.searchParams.set('refresh_token', data.session.refresh_token);
         redirectUrl.searchParams.set('expires_at', data.session.expires_at?.toString() || '');
         
+        console.log('Redirecting with session tokens to:', redirectUrl.toString());
+        
         const responseWithTokens = NextResponse.redirect(redirectUrl);
         return responseWithTokens;
+      } else {
+        console.error('No session data received from exchangeCodeForSession');
+        return NextResponse.redirect(new URL('/?verified=true&error=no_session', request.url));
       }
       
       return response;
