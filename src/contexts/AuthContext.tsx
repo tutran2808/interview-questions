@@ -86,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               sessionStorage.clear();
               setSession(null);
               setUser(null);
+              setLoading(false);
             } catch (error) {
               console.log('Error cleaning corrupted session:', error);
             }
@@ -94,6 +95,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           setSession(session);
           setUser(session?.user ?? null);
+          
+          // Clear loading state on successful auth state changes
+          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            setLoading(false);
+          }
         }
 
         // Handle email confirmation
@@ -191,16 +197,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
+      console.log('Attempting to sign in...');
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      return { error };
+      console.log('Sign in result:', { error: error?.message });
+      
+      if (error) {
+        console.error('Sign in error:', error);
+        setLoading(false);
+        return { error };
+      }
+      
+      // Successful login - loading will be cleared by auth state change listener
+      console.log('Sign in successful, waiting for auth state change...');
+      return { error: null };
     } catch (error) {
-      return { error: error as AuthError };
-    } finally {
+      console.error('Sign in catch error:', error);
       setLoading(false);
+      return { error: error as AuthError };
     }
   };
 
