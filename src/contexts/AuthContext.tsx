@@ -158,7 +158,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       });
 
-      console.log('Signup response:', { data, error });
+      console.log('Signup response:', { 
+        data: data ? {
+          user: data.user ? {
+            id: data.user.id,
+            email: data.user.email,
+            created_at: data.user.created_at,
+            email_confirmed_at: data.user.email_confirmed_at,
+            user_metadata: data.user.user_metadata
+          } : null,
+          session: !!data.session
+        } : null,
+        error: error ? {
+          message: error.message,
+          status: error.status,
+          name: error.name
+        } : null
+      });
       console.log('Signup email redirect URL:', typeof window !== 'undefined' 
         ? `${window.location.origin}/auth/callback`
         : 'https://nextrounds.ai/auth/callback');
@@ -183,25 +199,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Check if user was created but needs verification
       if (data.user && !data.session) {
-        // Check if this is actually an existing user (Supabase sometimes returns success for existing users)
-        // If the user was created very recently (within 1 minute), it's likely a new signup
-        // If the user was created longer ago, it's likely an existing user
-        if (data.user.created_at) {
-          const createdAt = new Date(data.user.created_at);
-          const now = new Date();
-          const timeDiff = now.getTime() - createdAt.getTime();
-          const oneMinute = 60 * 1000;
-          
-          if (timeDiff > oneMinute) {
-            console.log('User was created more than 1 minute ago, likely existing user');
-            return { 
-              error: { 
-                message: 'An account with this email already exists. Please sign in instead.',
-                name: 'UserAlreadyExists',
-                status: 400
-              } as any 
-            };
-          }
+        console.log('User returned without session, checking for duplicates...');
+        
+        // Check multiple indicators that this might be an existing user
+        const isExistingUser = 
+          // User was created more than 1 minute ago
+          (data.user.created_at && new Date().getTime() - new Date(data.user.created_at).getTime() > 60000) ||
+          // User email is already confirmed (existing users have this)
+          (data.user.email_confirmed_at) ||
+          // Check if user_metadata suggests existing user
+          (data.user.user_metadata && Object.keys(data.user.user_metadata).length > 0);
+        
+        console.log('Duplicate check results:', {
+          created_at: data.user.created_at,
+          email_confirmed_at: data.user.email_confirmed_at,
+          user_metadata: data.user.user_metadata,
+          isExistingUser
+        });
+        
+        if (isExistingUser) {
+          console.log('Detected existing user attempting signup');
+          return { 
+            error: { 
+              message: 'An account with this email already exists. Please sign in instead.',
+              name: 'UserAlreadyExists',
+              status: 400
+            } as any 
+          };
         }
         
         return { 
