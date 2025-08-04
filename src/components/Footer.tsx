@@ -19,14 +19,14 @@ const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 sm:gap-12">
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center space-x-3 mb-6">
+            <a href="/" className="flex items-center space-x-3 mb-6 hover:opacity-80 transition-opacity">
               <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                 </svg>
               </div>
               <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Next Rounds AI</h3>
-            </div>
+            </a>
             <p className="text-gray-300 mb-6 max-w-md text-base sm:text-lg leading-relaxed">
               Generate personalized interview questions powered by AI. 
               Prepare for your next interview with confidence and land your dream job.

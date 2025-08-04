@@ -128,10 +128,32 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
     }
   };
 
-  const handleManageSubscription = () => {
+  const handleManageSubscription = async () => {
     setDropdownOpen(false);
-    // Navigate to our custom subscription management page
-    window.location.href = '/subscription';
+    
+    try {
+      console.log('Opening Stripe customer portal...');
+      
+      const response = await fetch('/api/create-portal-session', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.url) {
+        // Redirect to Stripe Customer Portal
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || 'Failed to create portal session');
+      }
+    } catch (error) {
+      console.error('Error opening customer portal:', error);
+      alert('Unable to open subscription management. Please try again.');
+    }
   };
 
   // Use prop usage info if available, otherwise fetch from API
@@ -186,7 +208,7 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
         <div className="max-w-7xl mx-auto px-6 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-3 sm:py-4">
             <div className="flex items-center">
-              <div className="flex items-center space-x-2 sm:space-x-3">
+              <a href="/" className="flex items-center space-x-2 sm:space-x-3 hover:opacity-80 transition-opacity">
                 {/* Logo */}
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
                   <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,31 +220,31 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
                     Next Rounds AI
                   </h1>
                 </div>
-              </div>
+              </a>
             </div>
             
             {/* Auth buttons and Navigation */}
             <div className="flex items-center space-x-3 sm:space-x-8">
               {/* Navigation - hidden on mobile to reduce clutter */}
               <nav className="hidden lg:flex items-center space-x-6">
-                <button 
-                  onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+                <a 
+                  href="/#how-it-works"
                   className="text-gray-600 hover:text-gray-900 font-medium transition-colors text-sm"
                 >
                   How It Works
-                </button>
-                <button 
-                  onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+                </a>
+                <a 
+                  href="/#pricing"
                   className="text-gray-600 hover:text-gray-900 font-medium transition-colors text-sm"
                 >
                   Pricing
-                </button>
-                <button 
-                  onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
+                </a>
+                <a 
+                  href="/#faq"
                   className="text-gray-600 hover:text-gray-900 font-medium transition-colors text-sm"
                 >
                   FAQ
-                </button>
+                </a>
               </nav>
               
               {/* Auth section */}
