@@ -146,12 +146,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Skip the database check for now and rely on Supabase's built-in handling
-      // The direct database query was hanging due to RLS policies
-      console.log('Proceeding with signup, will check response for duplicates...');
+      // Check if user already exists using our API endpoint
+      console.log('Checking if user exists via API...');
+      const checkResponse = await fetch('/api/check-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (checkResponse.ok) {
+        const { exists } = await checkResponse.json();
+        if (exists) {
+          console.log('User already exists in database');
+          return {
+            error: {
+              message: 'An account with this email already exists. Please sign in instead.',
+              name: 'UserAlreadyExists',
+              status: 400
+            } as any
+          };
+        }
+      } else {
+        console.log('Error checking user existence, proceeding with signup...');
+      }
       
       // Proceed with signup
-      console.log('User not found in database, proceeding with signup...');
+      console.log('User not found, proceeding with signup...');
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -203,33 +225,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Check if user was created but needs verification
       if (data.user && !data.session) {
-        console.log('User returned without session, checking for duplicates...');
-        
-        // Based on your logs, for existing users Supabase returns the original creation date
-        // For new users, it should be very recent (within last few seconds)
-        const createdAt = new Date(data.user.created_at);
-        const now = new Date();
-        const timeDiffSeconds = (now.getTime() - createdAt.getTime()) / 1000;
-        
-        console.log('Time analysis:', {
-          created_at: data.user.created_at,
-          now: now.toISOString(),
-          timeDiffSeconds: timeDiffSeconds,
-          isOlderThan30Seconds: timeDiffSeconds > 30
-        });
-        
-        // If user was created more than 30 seconds ago, it's likely an existing user
-        if (timeDiffSeconds > 30) {
-          console.log('User created more than 30 seconds ago - likely existing user');
-          return { 
-            error: { 
-              message: 'An account with this email already exists. Please sign in instead.',
-              name: 'UserAlreadyExists',
-              status: 400
-            } as any 
-          };
-        }
-        
         return { 
           error: null,
           needsVerification: true,
