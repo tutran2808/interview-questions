@@ -47,12 +47,17 @@ export async function POST(request: NextRequest) {
         // Update user to Pro plan
         if (session.metadata?.user_id) {
           console.log('🔄 Updating user to Pro plan:', session.metadata.user_id);
+          console.log('📧 User email from metadata:', session.metadata.user_email);
           
           let updateQuery;
+          let lookupField;
+          let lookupValue;
           
           if (session.metadata.user_id === 'direct_signup') {
             // Direct signup flow - find user by email
             console.log('🔄 Direct signup mode - finding user by email:', session.metadata.user_email);
+            lookupField = 'email';
+            lookupValue = session.metadata.user_email;
             updateQuery = supabaseAdmin
               .from('users')
               .update({
@@ -64,6 +69,9 @@ export async function POST(request: NextRequest) {
               .eq('email', session.metadata.user_email);
           } else {
             // Regular flow - find user by ID
+            console.log('🔄 Regular mode - finding user by ID:', session.metadata.user_id);
+            lookupField = 'id';
+            lookupValue = session.metadata.user_id;
             updateQuery = supabaseAdmin
               .from('users')
               .update({
@@ -74,6 +82,28 @@ export async function POST(request: NextRequest) {
               })
               .eq('id', session.metadata.user_id);
           }
+          
+          console.log(`🔍 Looking up user by ${lookupField}:`, lookupValue);
+          
+          // First check if user exists
+          const { data: existingUser, error: lookupError } = await supabaseAdmin
+            .from('users')
+            .select('*')
+            .eq(lookupField, lookupValue)
+            .single();
+
+          if (lookupError) {
+            console.error('❌ Error finding user:', lookupError);
+            console.log('🔍 Attempting to list all users to debug...');
+            const { data: allUsers } = await supabaseAdmin
+              .from('users')
+              .select('id, email, subscription_plan')
+              .limit(10);
+            console.log('📋 Current users in database:', allUsers);
+            return;
+          }
+
+          console.log('👤 Found user:', existingUser);
           
           const { data, error } = await updateQuery.select();
 
