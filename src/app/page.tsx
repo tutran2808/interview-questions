@@ -81,28 +81,50 @@ export default function Home() {
               token_type: 'bearer'
             };
             
-            console.log('Calling setSession with:', sessionData);
+            console.log('Calling setSession with session data:', JSON.stringify(sessionData, null, 2));
+            
+            // Add a timeout to detect hanging setSession calls
+            const setSessionTimeout = setTimeout(() => {
+              console.error('setSession is taking too long, likely hanging');
+              setVerificationMessage('Email verified, but having trouble signing you in automatically. Please sign in manually.');
+              setTimeout(() => setVerificationMessage(''), 5000);
+            }, 5000);
             
             // Use setSession and wait for it
             supabase.auth.setSession(sessionData).then(({ data, error }) => {
-              console.log('setSession result:', { data, error, user: data?.user?.email });
+              clearTimeout(setSessionTimeout);
+              console.log('setSession result:', { 
+                data: data ? {
+                  user: data.user?.email,
+                  session: !!data.session
+                } : null, 
+                error: error ? {
+                  message: error.message,
+                  status: error.status
+                } : null
+              });
               
               if (error) {
-                console.error('setSession failed:', error);
+                console.error('setSession failed with error:', error);
                 setVerificationMessage('Email verified, but please sign in manually.');
-              } else {
-                console.log('setSession succeeded, user should be logged in');
+              } else if (data?.user) {
+                console.log('setSession succeeded! User:', data.user.email);
                 setVerificationMessage('Email verified successfully! You are now signed in.');
                 
-                // Manually trigger a state update to ensure UI reflects the login
+                // Force UI update by reloading after a short delay
                 setTimeout(() => {
+                  console.log('Reloading to refresh UI...');
                   window.location.reload();
                 }, 500);
+              } else {
+                console.warn('setSession completed but no user data returned');
+                setVerificationMessage('Email verified, but please sign in manually.');
               }
               
               setTimeout(() => setVerificationMessage(''), 5000);
             }).catch((err) => {
-              console.error('setSession error:', err);
+              clearTimeout(setSessionTimeout);
+              console.error('setSession error caught:', err);
               setVerificationMessage('Email verified, but please sign in manually.');
               setTimeout(() => setVerificationMessage(''), 5000);
             });
