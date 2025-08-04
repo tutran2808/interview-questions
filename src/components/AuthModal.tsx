@@ -82,9 +82,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
       } else if (mode === 'signup') {
         const { error: signUpError, needsVerification, message: signUpMessage } = await signUp(email, password);
         if (signUpError) {
-          if (signUpError.message.includes('already') || signUpError.message.includes('exists')) {
-            setMessage('An account with this email already exists. Please sign in instead.');
-            setTimeout(() => setMode('login'), 3000);
+          if (signUpError.message.includes('already') || signUpError.message.includes('exists') || 
+              signUpError.message.includes('User already registered')) {
+            setError('An account with this email already exists. Please sign in instead.');
+            // Auto-switch to login mode after showing the error
+            setTimeout(() => {
+              setError('');
+              setMode('login');
+            }, 3000);
           } else {
             setError(signUpError.message);
           }

@@ -25,6 +25,14 @@ interface GeneratedQuestions {
 
 export default function Home() {
   const { user } = useAuth();
+  
+  // Clear verification message when user signs in
+  useEffect(() => {
+    if (user && verificationMessage) {
+      console.log('User signed in, clearing verification message');
+      setVerificationMessage('');
+    }
+  }, [user, verificationMessage]);
   const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestions | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
