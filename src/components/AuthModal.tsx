@@ -80,10 +80,20 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
           setMessage('Password reset email sent! Check your inbox and follow the instructions.');
         }
       } else if (mode === 'signup') {
+        console.log('Attempting signup for email:', email);
         const { error: signUpError, needsVerification, message: signUpMessage } = await signUp(email, password);
+        
+        console.log('Signup result:', { 
+          error: signUpError?.message, 
+          needsVerification, 
+          message: signUpMessage 
+        });
+        
         if (signUpError) {
-          if (signUpError.message.includes('already') || signUpError.message.includes('exists') || 
-              signUpError.message.includes('User already registered')) {
+          console.log('Signup error detected:', signUpError.message);
+          if (signUpError.message.toLowerCase().includes('already') || 
+              signUpError.message.toLowerCase().includes('exists') || 
+              signUpError.message.toLowerCase().includes('user already registered')) {
             setError('An account with this email already exists. Please sign in instead.');
             // Auto-switch to login mode after showing the error
             setTimeout(() => {
@@ -94,6 +104,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
             setError(signUpError.message);
           }
         } else if (needsVerification) {
+          // Check if this might be a duplicate signup that Supabase didn't catch
+          console.log('No error but needs verification - checking for potential duplicate');
           setMessage(signUpMessage || 'Please check your email for the confirmation link and click it to verify your account.');
         } else {
           setMessage('Account created successfully!');

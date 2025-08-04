@@ -146,6 +146,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string) => {
     setLoading(true);
     try {
+      // First, check if user already exists by attempting to sign in
+      console.log('Checking if user already exists...');
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      // If sign in succeeds, user already exists
+      if (!signInError) {
+        console.log('User already exists and credentials are correct');
+        return { 
+          error: { 
+            message: 'User already registered with this email. You have been signed in automatically.',
+            name: 'UserAlreadyExists',
+            status: 400
+          } as any 
+        };
+      }
+      
+      // If sign in fails with invalid credentials, user might exist but password is wrong
+      if (signInError.message.toLowerCase().includes('invalid') && 
+          !signInError.message.toLowerCase().includes('email')) {
+        console.log('User exists but password is incorrect');
+        return { 
+          error: { 
+            message: 'An account with this email already exists. Please sign in instead.',
+            name: 'UserAlreadyExists',
+            status: 400
+          } as any 
+        };
+      }
+      
+      // If we get here, user doesn't exist, proceed with signup
+      console.log('User does not exist, proceeding with signup...');
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -168,6 +202,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           status: error.status,
           name: error.name
         });
+        
+        // Check for existing user errors
+        if (error.message?.toLowerCase().includes('user already registered') ||
+            error.message?.toLowerCase().includes('already') ||
+            error.message?.toLowerCase().includes('exists')) {
+          console.log('Detected duplicate email signup attempt');
+        }
+        
         return { error };
       }
 
