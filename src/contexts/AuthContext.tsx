@@ -74,7 +74,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, !!session);
+        
         if (isMounted) {
+          // Check for corrupted session specifically after payment flows
+          if (session && session.user && (!session.user.email || !session.access_token)) {
+            console.warn('Detected corrupted session after auth change, cleaning up...');
+            try {
+              await supabase.auth.signOut();
+              localStorage.clear();
+              sessionStorage.clear();
+              setSession(null);
+              setUser(null);
+            } catch (error) {
+              console.log('Error cleaning corrupted session:', error);
+            }
+            return;
+          }
+          
           setSession(session);
           setUser(session?.user ?? null);
         }
@@ -244,6 +261,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Force hard refresh to completely reset the app
     window.location.href = '/';
   };
+
+  // Check for session corruption on mount (especially after Stripe returns)
+  useEffect(() => {
+    const checkForCorruption = async () => {
+      try {
+        // If we're on success page or just returned from payment, do extra checks
+        const isFromPayment = window.location.pathname === '/success' || 
+                             window.location.search.includes('session_id');
+        
+        if (isFromPayment) {
+          console.log('Detected return from payment, performing session health check...');
+          
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (session && (!session.user || !session.user.email || !session.access_token)) {
+            console.warn('Corrupted session detected after payment, forcing cleanup...');
+            forceSignOut();
+          }
+        }
+      } catch (error) {
+        console.log('Error checking session corruption:', error);
+      }
+    };
+
+    checkForCorruption();
+  }, []);
 
   const resetPassword = async (email: string) => {
     try {

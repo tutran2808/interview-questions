@@ -19,24 +19,37 @@ function SuccessPageContent() {
       return;
     }
 
-    // Refresh session after returning from Stripe to ensure clean state
-    const refreshSession = async () => {
+    // Aggressive session cleanup after returning from Stripe to prevent corruption
+    const cleanupSession = async () => {
       try {
-        console.log('Refreshing session after Stripe return...');
-        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('Cleaning up session after Stripe return...');
+        
+        // Clear any potentially corrupted cached data
+        localStorage.removeItem('supabase.auth.token');
+        sessionStorage.clear();
+        
+        // Force refresh the session from server
+        const { data: { session }, error } = await supabase.auth.refreshSession();
         
         if (error) {
-          console.error('Error refreshing session:', error);
+          console.error('Error refreshing session after Stripe:', error);
+          // Try getting fresh session if refresh fails
+          const { data: { session: freshSession } } = await supabase.auth.getSession();
+          console.log('Fallback session check:', !!freshSession);
         } else {
-          console.log('Session refreshed successfully:', !!session);
+          console.log('Session refreshed successfully after Stripe:', !!session);
         }
+        
+        // Add small delay to ensure all auth state is properly updated
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
       } catch (error) {
-        console.error('Error during session refresh:', error);
+        console.error('Error during session cleanup:', error);
       }
     };
 
-    // Refresh session immediately, then give webhook time to process
-    refreshSession();
+    // Clean up session immediately, then give webhook time to process
+    cleanupSession();
     
     setTimeout(() => {
       setLoading(false);
