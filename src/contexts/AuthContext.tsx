@@ -12,6 +12,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
+  forceSignOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,14 +36,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Get initial session quickly in background
     const getSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        // Check for corrupted session (common with reset password issues)
+        if (error || (session && !session.user)) {
+          console.warn('Detected corrupted session, clearing...', { error, session });
+          await supabase.auth.signOut();
+          if (isMounted) {
+            setSession(null);
+            setUser(null);
+          }
+          return;
+        }
+        
         if (isMounted) {
           setSession(session);
           setUser(session?.user ?? null);
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
-        // Don't block UI for auth errors
+        // Clear potentially corrupted session
+        if (isMounted) {
+          setSession(null);
+          setUser(null);
+        }
       }
     };
 
@@ -198,6 +215,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Emergency force sign out for corrupted sessions
+  const forceSignOut = () => {
+    console.log('Force signing out - clearing all local data...');
+    
+    // Clear all local storage and session storage
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Clear React state
+    setUser(null);
+    setSession(null);
+    setLoading(false);
+    
+    // Clear any Supabase cached data
+    try {
+      supabase.auth.signOut();
+    } catch (error) {
+      console.log('Error during force signout, ignoring:', error);
+    }
+    
+    // Force hard refresh to completely reset the app
+    window.location.href = '/';
+  };
+
   const resetPassword = async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -220,6 +261,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signOut,
     resetPassword,
+    forceSignOut,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

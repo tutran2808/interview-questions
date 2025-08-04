@@ -11,11 +11,24 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInfo, onUsageUpdate }) => {
-  const { user, signOut, loading, session } = useAuth();
+  const { user, signOut, loading, session, forceSignOut } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [usageInfo, setUsageInfo] = useState<{current: number, limit: number, remaining: number} | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Emergency keyboard shortcut for corrupted sessions (Ctrl+Shift+L)
+  useEffect(() => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'L') {
+        console.log('Emergency signout triggered');
+        forceSignOut();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyboard);
+    return () => window.removeEventListener('keydown', handleKeyboard);
+  }, [forceSignOut]);
 
   const handleSignIn = () => {
     setAuthMode('login');
