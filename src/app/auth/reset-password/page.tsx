@@ -17,10 +17,12 @@ function ResetPasswordForm() {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const accessToken = hashParams.get('access_token');
     const refreshToken = hashParams.get('refresh_token');
+    const type = hashParams.get('type');
     
-    console.log('Reset password tokens:', { accessToken: !!accessToken, refreshToken: !!refreshToken });
+    console.log('Reset password URL hash:', window.location.hash);
+    console.log('Reset password tokens:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
     
-    if (!accessToken || !refreshToken) {
+    if (!accessToken || type !== 'recovery') {
       setError('Invalid reset link. Please request a new password reset.');
       return;
     }
@@ -28,14 +30,19 @@ function ResetPasswordForm() {
     // Set the session with the tokens from the URL
     const setSessionAsync = async () => {
       try {
-        const { error } = await supabase.auth.setSession({
+        const sessionData = {
           access_token: accessToken,
-          refresh_token: refreshToken,
-        });
+          refresh_token: refreshToken || accessToken, // Use access token as fallback
+        };
+        
+        console.log('Setting session with:', sessionData);
+        const { error } = await supabase.auth.setSession(sessionData);
         
         if (error) {
           console.error('Error setting session:', error);
           setError('Invalid reset link. Please request a new password reset.');
+        } else {
+          console.log('Session set successfully for password reset');
         }
       } catch (error) {
         console.error('Error setting session:', error);

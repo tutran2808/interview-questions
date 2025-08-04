@@ -39,9 +39,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session }, error } = await supabase.auth.getSession();
         
         // Check for corrupted session (common with reset password issues)
-        if (error || (session && !session.user)) {
+        if (error || (session && !session.user) || (session && session.user && !session.user.email)) {
           console.warn('Detected corrupted session, clearing...', { error, session });
-          await supabase.auth.signOut();
+          try {
+            await supabase.auth.signOut();
+            localStorage.clear();
+            sessionStorage.clear();
+          } catch (clearError) {
+            console.log('Error clearing corrupted session, ignoring:', clearError);
+          }
           if (isMounted) {
             setSession(null);
             setUser(null);
