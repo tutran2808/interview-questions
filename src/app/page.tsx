@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { analytics } from '@/lib/analytics';
 import Header from '@/components/Header';
@@ -28,13 +29,24 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState('');
   
-  // Check for login query parameter
+  // Check for login query parameter and verification status
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    
     if (urlParams.get('login') === 'true') {
       setAuthModalOpen(true);
-      // Clean up URL
+    }
+    
+    if (urlParams.get('verified') === 'true') {
+      setVerificationMessage('Email verified successfully! You are now signed in.');
+      // Clear message after 5 seconds
+      setTimeout(() => setVerificationMessage(''), 5000);
+    }
+    
+    // Clean up URL
+    if (urlParams.get('login') || urlParams.get('verified')) {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -309,6 +321,18 @@ export default function Home() {
         usageInfo={usageInfo}
         onUsageUpdate={handleUsageUpdate}
       />
+      
+      {/* Email Verification Success Message */}
+      {verificationMessage && (
+        <div className="bg-green-50 border border-green-200 px-4 py-3 mx-4 sm:mx-6 lg:mx-8 mt-4 rounded-lg">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+            </svg>
+            <p className="text-green-800 font-medium">{verificationMessage}</p>
+          </div>
+        </div>
+      )}
       
       <main>
         <HeroSection onGetStarted={scrollToTool} />

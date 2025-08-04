@@ -22,7 +22,7 @@ const TermsOfServicePage: React.FC = () => {
           </div>
 
           {/* Content */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 sm:p-12 prose prose-lg max-w-none">
+          <div className="bg-white rounded-2xl shadow-xl p-8 sm:p-12 prose prose-lg max-w-none text-gray-900">
             
             <h2>Agreement to Terms</h2>
             <p>

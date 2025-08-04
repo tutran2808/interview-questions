@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 function SuccessPageContent() {
   const router = useRouter();
@@ -18,7 +19,25 @@ function SuccessPageContent() {
       return;
     }
 
-    // Give the webhook time to process
+    // Refresh session after returning from Stripe to ensure clean state
+    const refreshSession = async () => {
+      try {
+        console.log('Refreshing session after Stripe return...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error refreshing session:', error);
+        } else {
+          console.log('Session refreshed successfully:', !!session);
+        }
+      } catch (error) {
+        console.error('Error during session refresh:', error);
+      }
+    };
+
+    // Refresh session immediately, then give webhook time to process
+    refreshSession();
+    
     setTimeout(() => {
       setLoading(false);
     }, 3000);

@@ -50,7 +50,6 @@ const Footer: React.FC = () => {
             <ul className="space-y-2">
               <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Features</a></li>
               <li><a href="#pricing" className="text-gray-400 hover:text-white transition-colors">Pricing</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Integrations</a></li>
             </ul>
           </div>
           

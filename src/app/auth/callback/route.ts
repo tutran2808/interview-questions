@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
       }
 
       console.log('Email verification successful');
-      // Redirect to home page on successful verification
-      return NextResponse.redirect(new URL('/?verified=true', request.url));
+      // Redirect to home page on successful verification - user will be automatically signed in
+      return NextResponse.redirect(new URL('/?verified=true&auto_login=true', request.url));
     } catch (error) {
       console.error('Unexpected auth error:', error);
       return NextResponse.redirect(new URL('/?error=unexpected_error', request.url));
