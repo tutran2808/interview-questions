@@ -39,14 +39,50 @@ export default function Home() {
       setAuthModalOpen(true);
     }
     
+    // Handle email verification with session restoration
     if (urlParams.get('verified') === 'true') {
-      setVerificationMessage('Email verified successfully! You are now signed in.');
-      // Clear message after 5 seconds
-      setTimeout(() => setVerificationMessage(''), 5000);
+      const accessToken = urlParams.get('access_token');
+      const refreshToken = urlParams.get('refresh_token');
+      const expiresAt = urlParams.get('expires_at');
+      
+      if (accessToken && refreshToken) {
+        // Restore session client-side
+        import('@/lib/supabase').then(({ supabase }) => {
+          supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            expires_at: expiresAt ? parseInt(expiresAt) : undefined,
+            expires_in: expiresAt ? parseInt(expiresAt) - Math.floor(Date.now() / 1000) : 3600,
+            token_type: 'bearer',
+            user: null // Will be populated automatically
+          }).then(({ data, error }) => {
+            if (error) {
+              console.error('Error restoring session:', error);
+            } else {
+              console.log('Session restored successfully:', data.user?.email);
+              setVerificationMessage('Email verified successfully! You are now signed in.');
+              // Clear message after 5 seconds
+              setTimeout(() => setVerificationMessage(''), 5000);
+            }
+          });
+        });
+      } else {
+        setVerificationMessage('Email verified successfully! You are now signed in.');
+        // Clear message after 5 seconds
+        setTimeout(() => setVerificationMessage(''), 5000);
+      }
     }
     
-    // Clean up URL
-    if (urlParams.get('login') || urlParams.get('verified')) {
+    // Clean up URL (remove all auth-related parameters)
+    const paramsToRemove = ['login', 'verified', 'access_token', 'refresh_token', 'expires_at'];
+    let hasAuthParams = false;
+    paramsToRemove.forEach(param => {
+      if (urlParams.has(param)) {
+        hasAuthParams = true;
+      }
+    });
+    
+    if (hasAuthParams) {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);

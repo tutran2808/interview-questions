@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   console.log('Auth callback received:', request.url);
@@ -19,16 +19,47 @@ export async function GET(request: NextRequest) {
   if (code) {
     try {
       console.log('Exchanging code for session...');
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      
+      // Create server-side Supabase client with proper cookie handling
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          auth: {
+            flowType: 'pkce'
+          }
+        }
+      );
+      
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
       
       if (error) {
         console.error('Auth callback error during exchange:', error);
         return NextResponse.redirect(new URL('/?error=auth_error', request.url));
       }
 
-      console.log('Email verification successful');
-      // Redirect to home page on successful verification - user will be automatically signed in
-      return NextResponse.redirect(new URL('/?verified=true&auto_login=true', request.url));
+      console.log('Email verification successful:', {
+        user: data.user?.email,
+        session: !!data.session
+      });
+      
+      // Create redirect response
+      const redirectUrl = new URL('/?verified=true&auto_login=true', request.url);
+      const response = NextResponse.redirect(redirectUrl);
+      
+      // Store session data in localStorage via a script injection approach
+      // This is better handled client-side, so let's redirect with session info
+      if (data.session) {
+        // Store the session tokens as URL parameters temporarily for client-side pickup
+        redirectUrl.searchParams.set('access_token', data.session.access_token);
+        redirectUrl.searchParams.set('refresh_token', data.session.refresh_token);
+        redirectUrl.searchParams.set('expires_at', data.session.expires_at?.toString() || '');
+        
+        const responseWithTokens = NextResponse.redirect(redirectUrl);
+        return responseWithTokens;
+      }
+      
+      return response;
     } catch (error) {
       console.error('Unexpected auth error:', error);
       return NextResponse.redirect(new URL('/?error=unexpected_error', request.url));
