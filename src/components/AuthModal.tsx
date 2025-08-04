@@ -24,7 +24,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
-  const { signIn, signUp, resetPassword } = useAuth();
+  const { signIn, signUp, resetPassword, user } = useAuth();
+
+  // Auto-close modal when user successfully signs in
+  useEffect(() => {
+    if (user && isOpen) {
+      console.log('User detected, auto-closing modal...');
+      onClose();
+    }
+  }, [user, isOpen, onClose]);
 
   // Simplified email handling
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,6 +91,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
         if (signInError) {
           setError('Invalid email or password. Please try again.');
         } else {
+          console.log('Sign-in successful, closing modal...');
           onClose();
         }
       }
