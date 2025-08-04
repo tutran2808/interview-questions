@@ -149,13 +149,25 @@ export async function POST(request: NextRequest) {
             console.log('🔔 Subscription will cancel at period end, keeping Pro access until:', new Date(subscription.current_period_end * 1000));
           }
           
+          // Set subscription end date if canceling at period end
+          const subscriptionEndDate = subscription.cancel_at_period_end 
+            ? new Date(subscription.current_period_end * 1000).toISOString()
+            : null;
+          
+          const updateData: any = {
+            subscription_plan: plan,
+            subscription_status: status,
+            updated_at: new Date().toISOString(),
+          };
+          
+          // Only add subscription_end_date if the column exists
+          if (subscriptionEndDate) {
+            updateData.subscription_end_date = subscriptionEndDate;
+          }
+          
           const { error } = await supabaseAdmin
             .from('users')
-            .update({
-              subscription_plan: plan,
-              subscription_status: status,
-              updated_at: new Date().toISOString(),
-            })
+            .update(updateData)
             .eq('id', users[0].id);
 
           if (error) {

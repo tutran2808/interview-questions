@@ -63,10 +63,10 @@ export async function GET(request: NextRequest) {
     const currentUsage = usageData?.length || 0;
     console.log('Usage API: Current usage:', currentUsage, 'records:', usageData);
     
-    // Check user's subscription plan
+    // Check user's subscription plan and end date
     const { data: userPlan, error: planError } = await supabaseAdmin
       .from('users')
-      .select('subscription_plan, subscription_status')
+      .select('subscription_plan, subscription_status, subscription_end_date, stripe_customer_id')
       .eq('id', user.id)
       .single();
     
@@ -83,9 +83,11 @@ export async function GET(request: NextRequest) {
       usageResponse = {
         current: currentUsage,
         limit: -1, // Unlimited
-        remaining: -1 // Unlimited
+        remaining: -1, // Unlimited
+        subscriptionEndDate: userPlan?.subscription_end_date,
+        isEndingSoon: userPlan?.subscription_end_date ? new Date(userPlan.subscription_end_date) > new Date() : false
       };
-      console.log('Usage API: Pro user - unlimited access');
+      console.log('Usage API: Pro user - unlimited access', { endDate: userPlan?.subscription_end_date });
     } else {
       const FREE_LIMIT = 3;
       usageResponse = {
