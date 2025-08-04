@@ -142,11 +142,16 @@ export async function POST(request: NextRequest) {
           if (subscription.status === 'active') {
             plan = 'pro';
             status = 'active';
-          } else if (subscription.cancel_at_period_end) {
-            // Subscription is set to cancel at period end, but still active
-            plan = 'pro';
-            status = 'active'; // Keep Pro access until period ends
-            console.log('🔔 Subscription will cancel at period end, keeping Pro access until:', new Date(subscription.current_period_end * 1000));
+            
+            // Check if subscription is set to cancel at period end
+            if (subscription.cancel_at_period_end) {
+              console.log('🔔 Subscription will cancel at period end, keeping Pro access until:', new Date(subscription.current_period_end * 1000));
+              // Still keep pro plan but mark as ending
+              status = 'active'; // Keep Pro access until period ends
+            }
+          } else if (subscription.status === 'canceled' || subscription.status === 'incomplete_expired') {
+            plan = 'free';
+            status = 'inactive';
           }
           
           // Set subscription end date if canceling at period end
@@ -160,9 +165,14 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString(),
           };
           
-          // Only add subscription_end_date if the column exists
+          // Always try to add subscription_end_date (will be ignored if column doesn't exist)
           if (subscriptionEndDate) {
             updateData.subscription_end_date = subscriptionEndDate;
+            console.log('📅 Setting subscription end date:', subscriptionEndDate);
+          } else if (!subscription.cancel_at_period_end && subscription.status === 'active') {
+            // Clear end date if subscription is reactivated
+            updateData.subscription_end_date = null;
+            console.log('🔄 Clearing subscription end date - subscription reactivated');
           }
           
           const { error } = await supabaseAdmin
