@@ -145,6 +145,58 @@ function SuccessPageContent() {
         >
           Start Generating Questions
         </button>
+        
+        {/* Debug Buttons */}
+        <div className="flex gap-2 mt-2">
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.access_token) {
+                  const response = await fetch('/api/debug-subscription', {
+                    headers: {
+                      'Authorization': `Bearer ${session.access_token}`,
+                    },
+                  });
+                  const data = await response.json();
+                  console.log('🔍 Debug subscription data:', data);
+                  alert('Check console for debug info');
+                }
+              } catch (error) {
+                console.error('Debug error:', error);
+              }
+            }}
+            className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-xl text-sm transition-colors"
+          >
+            Debug Status
+          </button>
+          
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.access_token) {
+                  const response = await fetch('/api/sync-subscription', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${session.access_token}`,
+                    },
+                    body: JSON.stringify({ sessionId: searchParams.get('session_id') }),
+                  });
+                  const data = await response.json();
+                  console.log('🔄 Force sync result:', data);
+                  alert('Sync completed - check console');
+                }
+              } catch (error) {
+                console.error('Force sync error:', error);
+              }
+            }}
+            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-xl text-sm transition-colors"
+          >
+            Force Sync
+          </button>
+        </div>
 
         <p className="text-sm text-gray-500 mt-4">
           You can manage your subscription anytime from your account settings.
