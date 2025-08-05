@@ -28,43 +28,40 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(false); // Start with false for better UX
+  const [loading, setLoading] = useState(true); // Start with true to check existing session
 
   useEffect(() => {
     let isMounted = true;
     
-    // Get initial session quickly in background
+    // Get initial session and ensure proper loading state
     const getSession = async () => {
       try {
+        console.log('Getting initial session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        // Check for severely corrupted session only
-        if (error && error.message?.includes('invalid_token')) {
-          console.warn('Detected invalid token, clearing session...', { error });
-          try {
-            await supabase.auth.signOut();
-            localStorage.clear();
-            sessionStorage.clear();
-          } catch (clearError) {
-            console.log('Error clearing corrupted session, ignoring:', clearError);
-          }
+        if (error) {
+          console.error('Error getting session:', error);
           if (isMounted) {
             setSession(null);
             setUser(null);
+            setLoading(false);
           }
           return;
         }
         
+        console.log('Initial session found:', !!session?.user, session?.user?.email);
+        
         if (isMounted) {
           setSession(session);
           setUser(session?.user ?? null);
+          setLoading(false); // Always set loading to false after getting session
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
-        // Clear potentially corrupted session
         if (isMounted) {
           setSession(null);
           setUser(null);
+          setLoading(false);
         }
       }
     };
@@ -266,8 +263,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setSession(null);
       
-      // Clear all storage immediately
-      localStorage.clear();
+      // Clear only auth-related storage, not everything
+      localStorage.removeItem('supabase.auth.token');
       sessionStorage.clear();
       
       // Try to sign out from Supabase with timeout
@@ -296,7 +293,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Force logout regardless of any errors
       setUser(null);
       setSession(null);
-      localStorage.clear();
+      localStorage.removeItem('supabase.auth.token');
       sessionStorage.clear();
       window.location.href = '/';
     }
@@ -304,10 +301,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Emergency force sign out for corrupted sessions
   const forceSignOut = () => {
-    console.log('Force signing out - clearing all local data...');
+    console.log('Force signing out - clearing auth data...');
     
-    // Clear all local storage and session storage
-    localStorage.clear();
+    // Clear only auth-related storage
+    localStorage.removeItem('supabase.auth.token');
     sessionStorage.clear();
     
     // Clear React state
@@ -326,33 +323,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.href = '/';
   };
 
-  // Check for session corruption on mount (less aggressive after Stripe)
-  useEffect(() => {
-    const checkForCorruption = async () => {
-      try {
-        // Only check for corruption if there are obvious signs of problems
-        const hasPaymentParams = window.location.search.includes('session_id');
+  // Disable session corruption checking temporarily to fix persistence issues
+  // useEffect(() => {
+  //   const checkForCorruption = async () => {
+  //     try {
+  //       const hasPaymentParams = window.location.search.includes('session_id');
         
-        if (hasPaymentParams) {
-          console.log('Detected return from payment, performing gentle session check...');
+  //       if (hasPaymentParams) {
+  //         console.log('Detected return from payment, performing gentle session check...');
           
-          const { data: { session }, error } = await supabase.auth.getSession();
+  //         const { data: { session }, error } = await supabase.auth.getSession();
           
-          // Only force logout if session is clearly corrupted (no user at all)
-          if (session && !session.user) {
-            console.warn('Severely corrupted session detected, forcing cleanup...');
-            forceSignOut();
-          } else if (session && session.user) {
-            console.log('Session appears healthy after payment');
-          }
-        }
-      } catch (error) {
-        console.log('Error checking session corruption:', error);
-      }
-    };
+  //         if (session && !session.user) {
+  //           console.warn('Severely corrupted session detected, forcing cleanup...');
+  //           forceSignOut();
+  //         } else if (session && session.user) {
+  //           console.log('Session appears healthy after payment');
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.log('Error checking session corruption:', error);
+  //     }
+  //   };
 
-    checkForCorruption();
-  }, []);
+  //   checkForCorruption();
+  // }, []);
 
   const resetPassword = async (email: string) => {
     try {
