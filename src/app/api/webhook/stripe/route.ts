@@ -9,7 +9,8 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function POST(request: NextRequest) {
-  console.log('🎯 Stripe webhook received');
+  const timestamp = new Date().toISOString();
+  console.log(`🎯 Stripe webhook received at ${timestamp}`);
   
   const body = await request.text();
   const headersList = await headers();
@@ -43,6 +44,12 @@ export async function POST(request: NextRequest) {
         const session = event.data.object as any;
         console.log('✅ Checkout session completed:', session.id);
         console.log('📋 Session metadata:', session.metadata);
+        console.log('👤 Customer info:', {
+          customer: session.customer,
+          customer_email: session.customer_email,
+          mode: session.mode,
+          payment_status: session.payment_status
+        });
 
         // Update user to Pro plan
         if (session.metadata?.user_id) {
