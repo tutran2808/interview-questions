@@ -648,38 +648,6 @@ export default function Home() {
                       Generate New Questions
                     </button>
                     
-                    {/* Temporary force Pro button for debugging */}
-                    {user && !isPro && (
-                      <button 
-                        onClick={async () => {
-                          try {
-                            const { data: { session } } = await import('@/lib/supabase').then(m => m.supabase.auth.getSession());
-                            if (session?.access_token) {
-                              const response = await fetch('/api/force-pro', {
-                                method: 'POST',
-                                headers: {
-                                  'Authorization': `Bearer ${session.access_token}`,
-                                },
-                              });
-                              
-                              if (response.ok) {
-                                alert('Upgraded to Pro! Refreshing page...');
-                                window.location.reload();
-                              } else {
-                                const error = await response.json();
-                                alert('Error: ' + error.error);
-                              }
-                            }
-                          } catch (error) {
-                            console.error('Force Pro error:', error);
-                            alert('Error upgrading to Pro');
-                          }
-                        }}
-                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-                      >
-                        🔧 Force Pro (Debug)
-                      </button>
-                    )}
                     
                     {/* Export Buttons - Plan-based restrictions */}
                     <div className="flex flex-wrap gap-2 justify-center">

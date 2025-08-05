@@ -125,6 +125,49 @@ export async function POST(request: NextRequest) {
         break;
       }
 
+      case 'customer.subscription.created': {
+        const subscription = event.data.object as any;
+        console.log('✅ New subscription created:', {
+          subscriptionId: subscription.id,
+          customerId: subscription.customer,
+          status: subscription.status,
+          priceId: subscription.items.data[0]?.price?.id
+        });
+
+        // Find user by customer ID and update to Pro plan
+        const { data: users } = await supabaseAdmin
+          .from('users')
+          .select('id, email')
+          .eq('stripe_customer_id', subscription.customer)
+          .limit(1);
+
+        if (users && users.length > 0) {
+          const userId = users[0].id;
+          console.log('🔄 Upgrading user to Pro via subscription.created:', userId);
+          
+          const { data, error } = await supabaseAdmin
+            .from('users')
+            .update({
+              subscription_plan: 'pro',
+              subscription_status: 'active',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId)
+            .select()
+            .single();
+
+          if (error) {
+            console.error('❌ Error updating user subscription via created event:', error);
+          } else {
+            console.log('✅ User upgraded to Pro via subscription.created:', data);
+          }
+        } else {
+          console.error('❌ No user found for customer ID:', subscription.customer);
+        }
+        
+        break;
+      }
+
       case 'customer.subscription.updated': {
         const subscription = event.data.object as any;
         console.log('🔄 Subscription updated:', {
