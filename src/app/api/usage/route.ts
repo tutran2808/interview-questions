@@ -119,12 +119,22 @@ export async function GET(request: NextRequest) {
       });
     } else {
       const FREE_LIMIT = 3;
+      
+      // Calculate next reset date (1st of next month)
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const resetDate = nextMonth.toISOString();
+      
       usageResponse = {
         current: currentUsage,
         limit: FREE_LIMIT,
-        remaining: Math.max(0, FREE_LIMIT - currentUsage)
+        remaining: Math.max(0, FREE_LIMIT - currentUsage),
+        resetDate: resetDate
       };
-      console.log('Usage API: Free user - limited access');
+      console.log('Usage API: Free user - limited access', { 
+        current: currentUsage, 
+        limit: FREE_LIMIT,
+        nextReset: resetDate 
+      });
     }
     
     console.log('Usage API: Returning usage:', usageResponse);

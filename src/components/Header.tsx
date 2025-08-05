@@ -301,9 +301,16 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
                               style={{ width: `${(usageInfo.current / usageInfo.limit) * 100}%` }}
                             ></div>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {usageInfo.remaining} generations remaining
-                          </p>
+                          <div className="flex justify-between items-center mt-1">
+                            <span className="text-xs text-gray-500">
+                              {usageInfo.remaining} remaining
+                            </span>
+                            {(usageInfo as any)?.resetDate && (
+                              <span className="text-xs text-gray-400">
+                                Resets {new Date((usageInfo as any).resetDate).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       )}
                       

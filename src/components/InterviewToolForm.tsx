@@ -502,9 +502,16 @@ const InterviewToolForm: React.FC<InterviewToolFormProps> = ({
                     Usage: {usageInfo.current}/{usageInfo.limit} questions this month
                   </span>
                 </div>
-                <span className="text-blue-600 text-sm">
-                  {usageInfo.remaining} remaining
-                </span>
+                <div className="flex flex-col items-end">
+                  <span className="text-blue-600 text-sm">
+                    {usageInfo.remaining} remaining
+                  </span>
+                  {(usageInfo as any)?.resetDate && (
+                    <span className="text-blue-500 text-xs mt-1">
+                      Resets {new Date((usageInfo as any).resetDate).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ) : null}
