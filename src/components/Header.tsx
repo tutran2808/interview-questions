@@ -307,7 +307,12 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
                             </span>
                             {(usageInfo as any)?.resetDate && (
                               <span className="text-xs text-gray-400">
-                                Resets {new Date((usageInfo as any).resetDate).toLocaleDateString()}
+                                Resets {new Date((usageInfo as any).resetDate).toLocaleDateString('en-US', { 
+                                  month: 'numeric', 
+                                  day: 'numeric', 
+                                  year: 'numeric',
+                                  timeZone: 'UTC'
+                                })}
                               </span>
                             )}
                           </div>

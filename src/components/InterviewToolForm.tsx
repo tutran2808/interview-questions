@@ -508,7 +508,12 @@ const InterviewToolForm: React.FC<InterviewToolFormProps> = ({
                   </span>
                   {(usageInfo as any)?.resetDate && (
                     <span className="text-blue-500 text-xs mt-1">
-                      Resets {new Date((usageInfo as any).resetDate).toLocaleDateString()}
+                      Resets {new Date((usageInfo as any).resetDate).toLocaleDateString('en-US', { 
+                        month: 'numeric', 
+                        day: 'numeric', 
+                        year: 'numeric',
+                        timeZone: 'UTC'
+                      })}
                     </span>
                   )}
                 </div>

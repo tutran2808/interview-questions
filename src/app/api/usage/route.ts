@@ -122,6 +122,13 @@ export async function GET(request: NextRequest) {
       
       // Calculate next reset date (1st of next month)
       const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      console.log('Usage API: Date calculation debug:', {
+        now: now.toISOString(),
+        currentMonth: now.getMonth(),
+        currentYear: now.getFullYear(),
+        nextMonth: nextMonth.toISOString(),
+        nextMonthLocal: nextMonth.toLocaleDateString()
+      });
       const resetDate = nextMonth.toISOString();
       
       usageResponse = {
