@@ -62,6 +62,43 @@ export default function Home() {
       setAuthModalOpen(true);
     }
     
+    // Check if we need to refresh usage after successful payment
+    if (urlParams.get('refresh') && user) {
+      console.log('Refreshing usage after successful payment...');
+      // Force refresh usage after a delay to allow webhook processing
+      setTimeout(async () => {
+        try {
+          // Get current session
+          const { data: { session } } = await import('@/lib/supabase').then(m => m.supabase.auth.getSession());
+          
+          if (session?.access_token) {
+            // Fetch updated usage directly
+            const response = await fetch('/api/usage', {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.usage) {
+                handleUsageUpdate(data.usage);
+                console.log('✅ Usage refreshed after payment:', data.usage);
+              }
+            }
+          }
+          
+          // Clean up URL by removing the refresh parameter
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('refresh');
+          window.history.replaceState({}, '', newUrl.toString());
+          
+        } catch (error) {
+          console.error('Error refreshing usage after payment:', error);
+        }
+      }, 2000);
+    }
+    
     
     // Handle email verification with session restoration
     // Check for Supabase auth tokens in URL fragment (default behavior)

@@ -26,7 +26,8 @@ function SuccessPageContent() {
   }, [searchParams, router]);
 
   const handleContinue = () => {
-    router.push('/#tool-section');
+    // Add a timestamp parameter to trigger usage refresh
+    router.push(`/?refresh=${Date.now()}#tool-section`);
   };
 
   if (loading) {
