@@ -317,12 +317,25 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
                           </div>
                           {(usageInfo as any)?.subscriptionEndDate && (
                             <div className="text-center">
-                              <p className="text-xs text-orange-600 font-medium">
-                                Subscription ends on {new Date((usageInfo as any).subscriptionEndDate).toLocaleDateString()}
-                              </p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                You'll be moved to Free Plan after this date
-                              </p>
+                              {(usageInfo as any)?.isSubscriptionCancelled ? (
+                                <>
+                                  <p className="text-xs text-orange-600 font-medium">
+                                    Subscription ends on {new Date((usageInfo as any).subscriptionEndDate).toLocaleDateString()}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    You'll be moved to Free Plan after this date
+                                  </p>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="text-xs text-blue-600 font-medium">
+                                    Subscription renews on {new Date((usageInfo as any).subscriptionEndDate).toLocaleDateString()}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Auto-renewal enabled
+                                  </p>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>

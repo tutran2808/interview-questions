@@ -70,6 +70,25 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single();
     
+    // Check if subscription is cancelled (will not renew) by querying Stripe
+    let isSubscriptionCancelled = false;
+    if (userPlan?.stripe_customer_id && userPlan?.subscription_plan === 'pro') {
+      try {
+        const subscriptions = await require('@/lib/stripe').default.subscriptions.list({
+          customer: userPlan.stripe_customer_id,
+          status: 'active',
+          limit: 1
+        });
+        
+        if (subscriptions.data.length > 0) {
+          isSubscriptionCancelled = subscriptions.data[0].cancel_at_period_end;
+          console.log('Usage API: Subscription cancellation status:', isSubscriptionCancelled);
+        }
+      } catch (stripeError) {
+        console.error('Usage API: Error checking Stripe subscription status:', stripeError);
+      }
+    }
+    
     if (planError) {
       console.error('Usage API: Error fetching user plan:', planError);
       // Default to free plan if error
@@ -91,7 +110,8 @@ export async function GET(request: NextRequest) {
         limit: -1, // Unlimited
         remaining: -1, // Unlimited
         subscriptionEndDate: userPlan?.subscription_end_date,
-        isRenewingSoon: isRenewingSoon
+        isRenewingSoon: isRenewingSoon,
+        isSubscriptionCancelled: isSubscriptionCancelled
       };
       console.log('Usage API: Pro user - unlimited access', { 
         endDate: userPlan?.subscription_end_date,

@@ -490,8 +490,8 @@ const InterviewToolForm: React.FC<InterviewToolFormProps> = ({
             </div>
           </div>
 
-          {/* Usage Info or Auth Info */}
-          {user && usageInfo ? (
+          {/* Usage Info for Free Plan users only */}
+          {user && usageInfo && usageInfo.limit !== -1 ? (
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
