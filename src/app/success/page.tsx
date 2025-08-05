@@ -19,7 +19,7 @@ function SuccessPageContent() {
       return;
     }
 
-    // Sync subscription status without aggressive session cleanup
+    // Sync subscription status in background without blocking UI
     const syncSubscription = async () => {
       try {
         console.log('Syncing subscription status after payment...');
@@ -28,62 +28,48 @@ function SuccessPageContent() {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.access_token) {
-          // Call sync endpoint to update subscription status
-          const response = await fetch('/api/sync-subscription', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({ sessionId }),
-          });
+          // Call sync endpoint with timeout to prevent hanging
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
           
-          if (response.ok) {
-            console.log('Subscription synced successfully');
-          } else {
-            console.error('Failed to sync subscription');
+          try {
+            const response = await fetch('/api/sync-subscription', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({ sessionId }),
+              signal: controller.signal,
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
+              console.log('Subscription synced successfully');
+            } else {
+              console.error('Failed to sync subscription, but continuing...');
+            }
+          } catch (fetchError) {
+            clearTimeout(timeoutId);
+            console.error('Sync request failed or timed out, continuing anyway:', fetchError);
           }
         } else {
           console.log('No auth session available, skipping sync');
         }
         
-        // Small delay to ensure webhook processing
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
       } catch (error) {
-        console.error('Error during subscription sync:', error);
+        console.error('Error during subscription sync, continuing anyway:', error);
       }
     };
 
-    // Sync subscription status
+    // Start sync in background but don't wait for it
     syncSubscription();
     
-    // Wait longer and then try to sync again if needed
-    setTimeout(async () => {
-      // Try syncing again after initial delay
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          const response = await fetch('/api/sync-subscription', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({ sessionId }),
-          });
-          
-          if (response.ok) {
-            const result = await response.json();
-            console.log('Final sync result:', result);
-          }
-        }
-      } catch (error) {
-        console.error('Error in final sync:', error);
-      }
-      
+    // Set loading to false after a reasonable delay regardless of sync status
+    setTimeout(() => {
       setLoading(false);
-    }, 5000); // Increased to 5 seconds
+    }, 3000); // Reduced to 3 seconds
   }, [searchParams, router]);
 
   const handleContinue = () => {
