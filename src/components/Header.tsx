@@ -332,17 +332,8 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
                                     Subscription renews on {new Date((usageInfo as any).subscriptionEndDate).toLocaleDateString()}
                                   </p>
                                   <p className="text-xs text-gray-500 mt-1">
-                                    Auto-renewal enabled
+                                    Cancel anytime via Manage Subscription
                                   </p>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleManageSubscription();
-                                    }}
-                                    className="text-xs text-blue-600 hover:text-blue-800 underline mt-2 transition-colors"
-                                  >
-                                    Cancel auto-renewal
-                                  </button>
                                 </>
                               )}
                             </div>
