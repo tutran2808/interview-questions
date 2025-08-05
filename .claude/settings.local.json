@@ -24,7 +24,8 @@
       "Bash(npm run build:*)",
       "Bash(grep:*)",
       "Bash(vercel:*)",
-      "Bash(openssl rand:*)"
+      "Bash(openssl rand:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

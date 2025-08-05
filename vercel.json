@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/process-subscription-downgrades",
+      "schedule": "0 2 * * *"
+    }
+  ]
+}

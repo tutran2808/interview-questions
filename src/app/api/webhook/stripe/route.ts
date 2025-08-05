@@ -94,13 +94,26 @@ export async function POST(request: NextRequest) {
 
           console.log('👤 Found user:', existingUser);
 
-          // Update user to Pro plan with customer ID
+          // Get subscription details to set end date
+          let subscriptionEndDate = null;
+          try {
+            if (session.subscription) {
+              const subscription = await stripe.subscriptions.retrieve(session.subscription);
+              subscriptionEndDate = new Date(subscription.current_period_end * 1000).toISOString();
+              console.log('📅 Setting subscription end date from session:', subscriptionEndDate);
+            }
+          } catch (subError) {
+            console.error('⚠️  Could not retrieve subscription details:', subError);
+          }
+
+          // Update user to Pro plan with customer ID and end date
           const { data, error } = await supabaseAdmin
             .from('users')
             .update({
               subscription_plan: 'pro',
               subscription_status: 'active',
               stripe_customer_id: session.customer,
+              subscription_end_date: subscriptionEndDate,
               updated_at: new Date().toISOString(),
             })
             .eq(lookupField, lookupValue)
@@ -138,11 +151,16 @@ export async function POST(request: NextRequest) {
           const userId = users[0].id;
           console.log('🔄 Upgrading user to Pro via subscription.created:', userId);
           
+          // Set subscription end date to current period end
+          const subscriptionEndDate = new Date(subscription.current_period_end * 1000).toISOString();
+          console.log('📅 Setting subscription end date:', subscriptionEndDate);
+          
           const { data, error } = await supabaseAdmin
             .from('users')
             .update({
               subscription_plan: 'pro',
               subscription_status: 'active',
+              subscription_end_date: subscriptionEndDate,
               updated_at: new Date().toISOString(),
             })
             .eq('id', userId)
@@ -197,26 +215,19 @@ export async function POST(request: NextRequest) {
             status = 'inactive';
           }
           
-          // Set subscription end date if canceling at period end
-          const subscriptionEndDate = subscription.cancel_at_period_end 
+          // Always set subscription end date for active Pro subscriptions
+          const subscriptionEndDate = subscription.status === 'active' 
             ? new Date(subscription.current_period_end * 1000).toISOString()
             : null;
           
           const updateData: any = {
             subscription_plan: plan,
             subscription_status: status,
+            subscription_end_date: subscriptionEndDate,
             updated_at: new Date().toISOString(),
           };
           
-          // Always try to add subscription_end_date (will be ignored if column doesn't exist)
-          if (subscriptionEndDate) {
-            updateData.subscription_end_date = subscriptionEndDate;
-            console.log('📅 Setting subscription end date:', subscriptionEndDate);
-          } else if (!subscription.cancel_at_period_end && subscription.status === 'active') {
-            // Clear end date if subscription is reactivated
-            updateData.subscription_end_date = null;
-            console.log('🔄 Clearing subscription end date - subscription reactivated');
-          }
+          console.log('📅 Setting subscription end date:', subscriptionEndDate);
           
           const { error } = await supabaseAdmin
             .from('users')
@@ -228,6 +239,70 @@ export async function POST(request: NextRequest) {
           } else {
             console.log('✅ Subscription updated for user:', users[0].email, { plan, status });
           }
+        }
+        break;
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as any;
+        console.log('💳 Invoice payment succeeded (potential renewal):', {
+          invoiceId: invoice.id,
+          subscriptionId: invoice.subscription,
+          customerId: invoice.customer,
+          billingReason: invoice.billing_reason,
+          periodStart: invoice.period_start,
+          periodEnd: invoice.period_end
+        });
+
+        // Only process subscription renewals (not one-time payments)
+        if (invoice.billing_reason === 'subscription_cycle' && invoice.subscription) {
+          console.log('🔄 Processing subscription renewal for customer:', invoice.customer);
+          
+          // Find user by customer ID
+          const { data: users } = await supabaseAdmin
+            .from('users')
+            .select('id, email, subscription_plan, subscription_status, subscription_end_date')
+            .eq('stripe_customer_id', invoice.customer)
+            .limit(1);
+
+          if (users && users.length > 0) {
+            const user = users[0];
+            console.log('👤 Found user for renewal:', {
+              email: user.email,
+              currentPlan: user.subscription_plan,
+              currentStatus: user.subscription_status,
+              currentEndDate: user.subscription_end_date
+            });
+
+            // Update subscription end date to new period end on renewal
+            const newSubscriptionEndDate = new Date(invoice.period_end * 1000).toISOString();
+            console.log('📅 Updating subscription end date on renewal:', newSubscriptionEndDate);
+            
+            const { data, error } = await supabaseAdmin
+              .from('users')
+              .update({
+                subscription_plan: 'pro',
+                subscription_status: 'active',
+                subscription_end_date: newSubscriptionEndDate, // Set new end date - subscription renewed
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', user.id)
+              .select()
+              .single();
+
+            if (error) {
+              console.error('❌ Error updating subscription on renewal:', error);
+            } else {
+              console.log('✅ Subscription renewed successfully:', {
+                email: user.email,
+                newEndDate: newSubscriptionEndDate
+              });
+            }
+          } else {
+            console.error('❌ No user found for customer on renewal:', invoice.customer);
+          }
+        } else {
+          console.log('ℹ️  Ignoring non-renewal payment:', invoice.billing_reason);
         }
         break;
       }

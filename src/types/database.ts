@@ -9,6 +9,7 @@ export interface Database {
           subscription_plan: 'free' | 'pro'
           subscription_status: 'active' | 'cancelled' | 'expired'
           stripe_customer_id: string | null
+          subscription_end_date: string | null
           created_at: string
           updated_at: string
         }
@@ -19,6 +20,7 @@ export interface Database {
           subscription_plan?: 'free' | 'pro'
           subscription_status?: 'active' | 'cancelled' | 'expired'
           stripe_customer_id?: string | null
+          subscription_end_date?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -29,6 +31,7 @@ export interface Database {
           subscription_plan?: 'free' | 'pro'
           subscription_status?: 'active' | 'cancelled' | 'expired'
           stripe_customer_id?: string | null
+          subscription_end_date?: string | null
           created_at?: string
           updated_at?: string
         }
