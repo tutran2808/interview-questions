@@ -334,6 +334,15 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
                                   <p className="text-xs text-gray-500 mt-1">
                                     Auto-renewal enabled
                                   </p>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleManageSubscription();
+                                    }}
+                                    className="text-xs text-blue-600 hover:text-blue-800 underline mt-2 transition-colors"
+                                  >
+                                    Cancel auto-renewal
+                                  </button>
                                 </>
                               )}
                             </div>
@@ -354,7 +363,7 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
                             onClick={handleManageSubscription}
                             className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
                           >
-                            Manage Subscription
+                            {(usageInfo as any)?.isSubscriptionCancelled ? 'Reactivate Subscription' : 'Manage Subscription'}
                           </button>
                         )}
                         <button
