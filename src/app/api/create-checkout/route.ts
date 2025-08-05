@@ -19,6 +19,14 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
+    // Check if Stripe price ID is configured
+    if (!process.env.STRIPE_PRICE_ID) {
+      console.error('❌ Stripe price ID not configured');
+      return NextResponse.json({ 
+        error: 'Stripe price ID not configured. Please add STRIPE_PRICE_ID to environment variables.' 
+      }, { status: 500 });
+    }
+
     // Parse request body to check for direct signup mode
     let body = {};
     try {
@@ -66,17 +74,7 @@ export async function POST(request: NextRequest) {
       payment_method_types: ['card'],
       line_items: [
         {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'Next Rounds AI - Pro Plan',
-              description: 'Unlimited interview question generations, CSV export, priority support.',
-            },
-            unit_amount: 399, // $3.99 in cents
-            recurring: {
-              interval: 'month',
-            },
-          },
+          price: process.env.STRIPE_PRICE_ID,
           quantity: 1,
         },
       ],

@@ -38,9 +38,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        // Check for corrupted session (common with reset password issues)
-        if (error || (session && !session.user) || (session && session.user && !session.user.email)) {
-          console.warn('Detected corrupted session, clearing...', { error, session });
+        // Check for severely corrupted session only
+        if (error && error.message?.includes('invalid_token')) {
+          console.warn('Detected invalid token, clearing session...', { error });
           try {
             await supabase.auth.signOut();
             localStorage.clear();
@@ -77,22 +77,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Auth state change:', event, !!session);
         
         if (isMounted) {
-          // Check for corrupted session specifically after payment flows
-          if (session && session.user && (!session.user.email || !session.access_token)) {
-            console.warn('Detected corrupted session after auth change, cleaning up...');
-            try {
-              await supabase.auth.signOut();
-              localStorage.clear();
-              sessionStorage.clear();
-              setSession(null);
-              setUser(null);
-              setLoading(false);
-            } catch (error) {
-              console.log('Error cleaning corrupted session:', error);
-            }
-            return;
-          }
-          
           setSession(session);
           setUser(session?.user ?? null);
           
@@ -342,22 +326,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.href = '/';
   };
 
-  // Check for session corruption on mount (especially after Stripe returns)
+  // Check for session corruption on mount (less aggressive after Stripe)
   useEffect(() => {
     const checkForCorruption = async () => {
       try {
-        // If we're on success page or just returned from payment, do extra checks
-        const isFromPayment = window.location.pathname === '/success' || 
-                             window.location.search.includes('session_id');
+        // Only check for corruption if there are obvious signs of problems
+        const hasPaymentParams = window.location.search.includes('session_id');
         
-        if (isFromPayment) {
-          console.log('Detected return from payment, performing session health check...');
+        if (hasPaymentParams) {
+          console.log('Detected return from payment, performing gentle session check...');
           
           const { data: { session }, error } = await supabase.auth.getSession();
           
-          if (session && (!session.user || !session.user.email || !session.access_token)) {
-            console.warn('Corrupted session detected after payment, forcing cleanup...');
+          // Only force logout if session is clearly corrupted (no user at all)
+          if (session && !session.user) {
+            console.warn('Severely corrupted session detected, forcing cleanup...');
             forceSignOut();
+          } else if (session && session.user) {
+            console.log('Session appears healthy after payment');
           }
         }
       } catch (error) {

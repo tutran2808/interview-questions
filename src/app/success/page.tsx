@@ -19,37 +19,44 @@ function SuccessPageContent() {
       return;
     }
 
-    // Aggressive session cleanup after returning from Stripe to prevent corruption
-    const cleanupSession = async () => {
+    // Sync subscription status without aggressive session cleanup
+    const syncSubscription = async () => {
       try {
-        console.log('Cleaning up session after Stripe return...');
+        console.log('Syncing subscription status after payment...');
         
-        // Clear any potentially corrupted cached data
-        localStorage.removeItem('supabase.auth.token');
-        sessionStorage.clear();
+        // Get current session for auth token
+        const { data: { session } } = await supabase.auth.getSession();
         
-        // Force refresh the session from server
-        const { data: { session }, error } = await supabase.auth.refreshSession();
-        
-        if (error) {
-          console.error('Error refreshing session after Stripe:', error);
-          // Try getting fresh session if refresh fails
-          const { data: { session: freshSession } } = await supabase.auth.getSession();
-          console.log('Fallback session check:', !!freshSession);
+        if (session?.access_token) {
+          // Call sync endpoint to update subscription status
+          const response = await fetch('/api/sync-subscription', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ sessionId }),
+          });
+          
+          if (response.ok) {
+            console.log('Subscription synced successfully');
+          } else {
+            console.error('Failed to sync subscription');
+          }
         } else {
-          console.log('Session refreshed successfully after Stripe:', !!session);
+          console.log('No auth session available, skipping sync');
         }
         
-        // Add small delay to ensure all auth state is properly updated
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Small delay to ensure webhook processing
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
       } catch (error) {
-        console.error('Error during session cleanup:', error);
+        console.error('Error during subscription sync:', error);
       }
     };
 
-    // Clean up session immediately, then give webhook time to process
-    cleanupSession();
+    // Sync subscription status
+    syncSubscription();
     
     setTimeout(() => {
       setLoading(false);
