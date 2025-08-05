@@ -58,13 +58,36 @@ function SuccessPageContent() {
     // Sync subscription status
     syncSubscription();
     
-    setTimeout(() => {
+    // Wait longer and then try to sync again if needed
+    setTimeout(async () => {
+      // Try syncing again after initial delay
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          const response = await fetch('/api/sync-subscription', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ sessionId }),
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            console.log('Final sync result:', result);
+          }
+        }
+      } catch (error) {
+        console.error('Error in final sync:', error);
+      }
+      
       setLoading(false);
-    }, 3000);
+    }, 5000); // Increased to 5 seconds
   }, [searchParams, router]);
 
   const handleContinue = () => {
-    router.push('/#tool-section');
+    router.push('/?from=success#tool-section');
   };
 
   if (loading) {
