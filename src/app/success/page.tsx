@@ -19,61 +19,14 @@ function SuccessPageContent() {
       return;
     }
 
-    // Sync subscription status in background without blocking UI
-    const syncSubscription = async () => {
-      try {
-        console.log('Syncing subscription status after payment...');
-        
-        // Get current session for auth token
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.access_token) {
-          // Call sync endpoint with timeout to prevent hanging
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-          
-          try {
-            const response = await fetch('/api/sync-subscription', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify({ sessionId }),
-              signal: controller.signal,
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (response.ok) {
-              console.log('Subscription synced successfully');
-            } else {
-              console.error('Failed to sync subscription, but continuing...');
-            }
-          } catch (fetchError) {
-            clearTimeout(timeoutId);
-            console.error('Sync request failed or timed out, continuing anyway:', fetchError);
-          }
-        } else {
-          console.log('No auth session available, skipping sync');
-        }
-        
-      } catch (error) {
-        console.error('Error during subscription sync, continuing anyway:', error);
-      }
-    };
-
-    // Start sync in background but don't wait for it
-    syncSubscription();
-    
-    // Set loading to false after a reasonable delay regardless of sync status
+    // Simple delay to allow webhook processing
     setTimeout(() => {
       setLoading(false);
-    }, 3000); // Reduced to 3 seconds
+    }, 3000);
   }, [searchParams, router]);
 
   const handleContinue = () => {
-    router.push('/?from=success#tool-section');
+    router.push('/#tool-section');
   };
 
   if (loading) {
@@ -146,57 +99,6 @@ function SuccessPageContent() {
           Start Generating Questions
         </button>
         
-        {/* Debug Buttons */}
-        <div className="flex gap-2 mt-2">
-          <button
-            onClick={async () => {
-              try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session?.access_token) {
-                  const response = await fetch('/api/debug-subscription', {
-                    headers: {
-                      'Authorization': `Bearer ${session.access_token}`,
-                    },
-                  });
-                  const data = await response.json();
-                  console.log('🔍 Debug subscription data:', data);
-                  alert('Check console for debug info');
-                }
-              } catch (error) {
-                console.error('Debug error:', error);
-              }
-            }}
-            className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-xl text-sm transition-colors"
-          >
-            Debug Status
-          </button>
-          
-          <button
-            onClick={async () => {
-              try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session?.access_token) {
-                  const response = await fetch('/api/sync-subscription', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${session.access_token}`,
-                    },
-                    body: JSON.stringify({ sessionId: searchParams.get('session_id') }),
-                  });
-                  const data = await response.json();
-                  console.log('🔄 Force sync result:', data);
-                  alert('Sync completed - check console');
-                }
-              } catch (error) {
-                console.error('Force sync error:', error);
-              }
-            }}
-            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-xl text-sm transition-colors"
-          >
-            Force Sync
-          </button>
-        </div>
 
         <p className="text-sm text-gray-500 mt-4">
           You can manage your subscription anytime from your account settings.

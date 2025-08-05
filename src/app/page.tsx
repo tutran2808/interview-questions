@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { analytics } from '@/lib/analytics';
-import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
 import HowItWorksSection from '@/components/HowItWorksSection';
@@ -63,33 +62,6 @@ export default function Home() {
       setAuthModalOpen(true);
     }
     
-    // Check if user is returning from success page (payment completed)
-    if (urlParams.get('from') === 'success' && user) {
-      console.log('User returning from success page, refreshing usage...');
-      // Trigger usage refresh after a short delay to allow webhook processing
-      setTimeout(async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.access_token) {
-            const response = await fetch('/api/usage', {
-              headers: {
-                'Authorization': `Bearer ${session.access_token}`,
-              },
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              if (data.usage) {
-                handleUsageUpdate(data.usage);
-                console.log('Usage refreshed:', data.usage);
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error refreshing usage:', error);
-        }
-      }, 3000);
-    }
     
     // Handle email verification with session restoration
     // Check for Supabase auth tokens in URL fragment (default behavior)
