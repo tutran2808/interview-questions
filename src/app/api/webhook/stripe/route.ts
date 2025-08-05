@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
         if (session.metadata?.user_id) {
           console.log('🔄 Updating user to Pro plan:', session.metadata.user_id);
           console.log('📧 User email from metadata:', session.metadata.user_email);
+          console.log('💳 Stripe customer ID:', session.customer);
           
-          let updateQuery;
           let lookupField;
           let lookupValue;
           
@@ -65,29 +65,11 @@ export async function POST(request: NextRequest) {
             console.log('🔄 Direct signup mode - finding user by email:', session.metadata.user_email);
             lookupField = 'email';
             lookupValue = session.metadata.user_email;
-            updateQuery = supabaseAdmin
-              .from('users')
-              .update({
-                subscription_plan: 'pro',
-                subscription_status: 'active',
-                stripe_customer_id: session.customer,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('email', session.metadata.user_email);
           } else {
             // Regular flow - find user by ID
             console.log('🔄 Regular mode - finding user by ID:', session.metadata.user_id);
             lookupField = 'id';
             lookupValue = session.metadata.user_id;
-            updateQuery = supabaseAdmin
-              .from('users')
-              .update({
-                subscription_plan: 'pro',
-                subscription_status: 'active',
-                stripe_customer_id: session.customer,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', session.metadata.user_id);
           }
           
           console.log(`🔍 Looking up user by ${lookupField}:`, lookupValue);
@@ -111,8 +93,19 @@ export async function POST(request: NextRequest) {
           }
 
           console.log('👤 Found user:', existingUser);
-          
-          const { data, error } = await updateQuery.select();
+
+          // Update user to Pro plan with customer ID
+          const { data, error } = await supabaseAdmin
+            .from('users')
+            .update({
+              subscription_plan: 'pro',
+              subscription_status: 'active',
+              stripe_customer_id: session.customer,
+              updated_at: new Date().toISOString(),
+            })
+            .eq(lookupField, lookupValue)
+            .select()
+            .single();
 
           if (error) {
             console.error('❌ Error updating user subscription:', error);
