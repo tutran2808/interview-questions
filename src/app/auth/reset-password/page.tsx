@@ -106,21 +106,33 @@ function ResetPasswordForm() {
       if (error) {
         console.error('Password update error:', error);
         setError('Failed to update password. Please try requesting a new reset link.');
-      } else {
-        console.log('Password updated successfully:', data);
-        setMessage('Password updated successfully! Redirecting to login...');
-        
-        // Clear URL hash to prevent reuse
-        window.location.hash = '';
-        
-        setTimeout(() => {
-          router.push('/?login=true');
-        }, 2000);
+        setLoading(false);
+        return;
       }
+
+      console.log('Password updated successfully:', data);
+      setMessage('Password updated successfully! Redirecting to login...');
+      setLoading(false);
+      
+      // Clear URL hash to prevent reuse
+      try {
+        window.location.hash = '';
+      } catch (e) {
+        console.log('Could not clear hash:', e);
+      }
+      
+      setTimeout(() => {
+        try {
+          router.push('/?login=true');
+        } catch (e) {
+          console.log('Could not redirect:', e);
+          window.location.href = '/?login=true';
+        }
+      }, 2000);
+
     } catch (error: any) {
       console.error('Password update catch error:', error);
       setError('An unexpected error occurred. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
