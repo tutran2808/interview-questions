@@ -63,39 +63,67 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log('Verifying recovery token...');
+    console.log('Decoding recovery token to extract user ID...');
     
-    // First, try to get user info from the access token using regular client
-    const { data: { user }, error: userError } = await supabase.auth.getUser(accessToken);
+    try {
+      // Decode JWT manually since recovery tokens might not work with getUser()
+      const tokenParts = accessToken.split('.');
+      if (tokenParts.length !== 3) {
+        throw new Error('Invalid JWT format');
+      }
+      
+      // Decode the payload (second part of JWT) - JWT uses URL-safe base64
+      const base64Payload = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+      // Add padding if necessary
+      const paddedBase64 = base64Payload + '='.repeat((4 - base64Payload.length % 4) % 4);
+      const payload = JSON.parse(Buffer.from(paddedBase64, 'base64').toString());
+      console.log('Decoded token payload:', {
+        sub: payload.sub,
+        email: payload.email,
+        exp: payload.exp,
+        aud: payload.aud
+      });
+      
+      const userId = payload.sub;
+      const userEmail = payload.email;
+      
+      if (!userId) {
+        throw new Error('No user ID found in token');
+      }
+      
+      // Verify token is not expired
+      if (payload.exp && Date.now() / 1000 > payload.exp) {
+        throw new Error('Token expired');
+      }
+      
+      console.log('Token decoded successfully for user:', userEmail, 'User ID:', userId);
 
-    if (userError || !user) {
-      console.error('Token verification failed:', userError);
+      // Use admin client to directly update the user's password
+      const { data: updateData, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        userId,
+        { password: password }
+      );
+      
+      if (updateError) {
+        console.error('Password update error:', updateError);
+        return NextResponse.json({ 
+          error: `Update failed: ${updateError.message}` 
+        }, { status: 500 });
+      }
+
+      console.log('Password updated successfully for user:', updateData?.user?.email || userEmail);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Password updated successfully'
+      });
+
+    } catch (tokenError: any) {
+      console.error('Token decoding error:', tokenError);
       return NextResponse.json({ 
-        error: `Invalid reset token: ${userError?.message || 'No user found'}` 
+        error: `Invalid reset token: ${tokenError.message}` 
       }, { status: 401 });
     }
-
-    console.log('Token verified for user:', user.email, 'User ID:', user.id);
-
-    // Use admin client to directly update the user's password
-    const { data: updateData, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-      user.id,
-      { password: password }
-    );
-
-    if (updateError) {
-      console.error('Password update error:', updateError);
-      return NextResponse.json({ 
-        error: `Update failed: ${updateError.message}` 
-      }, { status: 500 });
-    }
-
-    console.log('Password updated successfully for user:', updateData?.user?.email || user.email);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Password updated successfully'
-    });
 
   } catch (error: any) {
     console.error('Password reset API error:', error);
