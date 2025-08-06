@@ -17,16 +17,16 @@ function ResetPasswordForm() {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const queryParams = new URLSearchParams(window.location.search);
     
-    // Try hash format first (new template)
-    let accessToken = hashParams.get('access_token');
-    let refreshToken = hashParams.get('refresh_token');
-    let type = hashParams.get('type');
+    // Try query format first (TokenHash format)
+    let accessToken = queryParams.get('token');
+    let type = queryParams.get('type');
+    let refreshToken = accessToken; // Use token as both access and refresh
     
-    // Fallback to query format (old template)
-    if (!accessToken && queryParams.get('token')) {
-      accessToken = queryParams.get('token');
-      type = queryParams.get('type');
-      refreshToken = accessToken; // Use token as both access and refresh
+    // Fallback to hash format if no query params
+    if (!accessToken && hashParams.get('access_token')) {
+      accessToken = hashParams.get('access_token');
+      refreshToken = hashParams.get('refresh_token');
+      type = hashParams.get('type');
     }
     
     console.log('Reset password URL hash:', window.location.hash);
