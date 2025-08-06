@@ -11,6 +11,7 @@ function ResetPasswordForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [token, setToken] = useState('');
 
   useEffect(() => {
     // Check both hash and query parameters for tokens
@@ -38,7 +39,8 @@ function ResetPasswordForm() {
       return;
     }
 
-    // Skip session setup - we'll use server-side API instead
+    // Store token for use in handleSubmit
+    setToken(accessToken);
     console.log('Token found, ready for server-side password reset');
   }, []);
 
@@ -71,7 +73,7 @@ function ResetPasswordForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          token: accessToken,
+          token: token,
           password: password
         })
       });
