@@ -48,9 +48,9 @@ function ResetPasswordForm() {
         if (error) {
           console.error('Error setting session:', error);
           // Try alternative approach if JWT parsing fails
-          if (error.message?.includes('JWT') || error.message?.includes('Invalid')) {
-            console.log('JWT error detected, proceeding without session setup...');
-            // Allow password reset to proceed - the tokens in URL should be sufficient
+          if (error.message?.includes('JWT') || error.message?.includes('Invalid') || error.message?.includes('expired')) {
+            console.log('JWT/Session error detected, but tokens are present. User can still try password reset...');
+            // Allow password reset to proceed - we'll try session setup again during password update
           } else {
             setError('Invalid reset link. Please request a new password reset.');
           }
@@ -93,9 +93,26 @@ function ResetPasswordForm() {
     try {
       console.log('Attempting to update password...');
       
+      // Get tokens from URL again for the update request
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      
+      if (!accessToken) {
+        setError('Session expired. Please request a new password reset link.');
+        setLoading(false);
+        return;
+      }
+
+      // Try to set session again before password update
+      console.log('Setting session before password update...');
+      await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: hashParams.get('refresh_token') || accessToken
+      });
+      
       // Add timeout to prevent hanging
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 10000)
+        setTimeout(() => reject(new Error('Request timeout')), 15000)
       );
       
       const updatePromise = supabase.auth.updateUser({
@@ -109,7 +126,40 @@ function ResetPasswordForm() {
 
       if (error) {
         console.error('Password update error:', error);
-        setError(error.message || 'Failed to update password. Please try again.');
+        // Check for specific error types and try API fallback
+        if (error.message?.includes('JWT') || error.message?.includes('session') || error.message?.includes('Invalid')) {
+          console.log('Client-side update failed, trying API fallback...');
+          
+          // Try API fallback
+          try {
+            const apiResponse = await fetch('/api/reset-password', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                accessToken: accessToken,
+                password: password
+              })
+            });
+
+            const apiResult = await apiResponse.json();
+
+            if (apiResponse.ok && apiResult.success) {
+              setMessage('Password updated successfully! Redirecting to login...');
+              setTimeout(() => {
+                router.push('/?login=true');
+              }, 2000);
+            } else {
+              setError(apiResult.error || 'Failed to update password. Please request a new reset link.');
+            }
+          } catch (apiError) {
+            console.error('API fallback failed:', apiError);
+            setError('Session expired. Please request a new password reset link.');
+          }
+        } else {
+          setError(error.message || 'Failed to update password. Please try again.');
+        }
       } else {
         setMessage('Password updated successfully! Redirecting to login...');
         setTimeout(() => {
@@ -120,6 +170,8 @@ function ResetPasswordForm() {
       console.error('Password update catch error:', error);
       if (error.message === 'Request timeout') {
         setError('Request timed out. Please check your connection and try again.');
+      } else if (error.message?.includes('JWT') || error.message?.includes('session')) {
+        setError('Session expired. Please request a new password reset link.');
       } else {
         setError('An unexpected error occurred. Please try again.');
       }
@@ -145,6 +197,16 @@ function ResetPasswordForm() {
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
             {error}
+            {error.includes('Invalid reset link') && (
+              <div className="mt-2">
+                <button
+                  onClick={() => router.push('/')}
+                  className="text-red-800 hover:text-red-900 underline font-medium"
+                >
+                  Request a new password reset
+                </button>
+              </div>
+            )}
           </div>
         )}
         {message && (
