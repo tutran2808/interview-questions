@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,9 +49,12 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log('Creating Supabase client for password reset...');
+    console.log('Creating Supabase clients for password reset...');
     
-    // Create a new client instance specifically for this reset operation
+    // Create admin client for direct user management
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Create regular client to verify the token
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: false,
@@ -59,34 +63,25 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log('Setting session with recovery tokens...');
+    console.log('Verifying recovery token...');
     
-    // Set the session with the recovery tokens
-    const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken || accessToken
-    });
+    // First, try to get user info from the access token using regular client
+    const { data: { user }, error: userError } = await supabase.auth.getUser(accessToken);
 
-    if (sessionError) {
-      console.error('Session error:', sessionError);
+    if (userError || !user) {
+      console.error('Token verification failed:', userError);
       return NextResponse.json({ 
-        error: `Session error: ${sessionError.message}` 
+        error: `Invalid reset token: ${userError?.message || 'No user found'}` 
       }, { status: 401 });
     }
 
-    if (!sessionData.session?.user) {
-      console.error('No user found in session:', sessionData);
-      return NextResponse.json({ 
-        error: 'Invalid reset session - no user found' 
-      }, { status: 401 });
-    }
+    console.log('Token verified for user:', user.email, 'User ID:', user.id);
 
-    console.log('Session established for user:', sessionData.session.user.email);
-
-    // Update the password
-    const { data: updateData, error: updateError } = await supabase.auth.updateUser({
-      password: password
-    });
+    // Use admin client to directly update the user's password
+    const { data: updateData, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+      user.id,
+      { password: password }
+    );
 
     if (updateError) {
       console.error('Password update error:', updateError);
@@ -95,7 +90,7 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log('Password updated successfully for user:', updateData.user?.email);
+    console.log('Password updated successfully for user:', updateData?.user?.email || user.email);
 
     return NextResponse.json({
       success: true,
