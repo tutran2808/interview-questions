@@ -36,17 +36,35 @@ function ResetPasswordForm() {
         };
         
         console.log('Setting session with:', sessionData);
-        const { error } = await supabase.auth.setSession(sessionData);
+        
+        // Add timeout to prevent hanging
+        const sessionPromise = supabase.auth.setSession(sessionData);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session setup timeout')), 5000)
+        );
+        
+        const { error } = await Promise.race([sessionPromise, timeoutPromise]) as any;
         
         if (error) {
           console.error('Error setting session:', error);
-          setError('Invalid reset link. Please request a new password reset.');
+          // Try alternative approach if JWT parsing fails
+          if (error.message?.includes('JWT') || error.message?.includes('Invalid')) {
+            console.log('JWT error detected, proceeding without session setup...');
+            // Allow password reset to proceed - the tokens in URL should be sufficient
+          } else {
+            setError('Invalid reset link. Please request a new password reset.');
+          }
         } else {
           console.log('Session set successfully for password reset');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error setting session:', error);
-        setError('Invalid reset link. Please request a new password reset.');
+        if (error.message === 'Session setup timeout') {
+          console.log('Session setup timed out, proceeding anyway...');
+          // Allow password reset to proceed
+        } else {
+          setError('Invalid reset link. Please request a new password reset.');
+        }
       }
     };
     

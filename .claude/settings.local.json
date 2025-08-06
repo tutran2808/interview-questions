@@ -25,7 +25,8 @@
       "Bash(grep:*)",
       "Bash(vercel:*)",
       "Bash(openssl rand:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }
