@@ -13,62 +13,48 @@ function ResetPasswordForm() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    // Check if we have the proper hash/tokens in the URL
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const refreshToken = hashParams.get('refresh_token');
-    const type = hashParams.get('type');
-    
-    console.log('Reset password URL hash:', window.location.hash);
-    console.log('Reset password tokens:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
-    
-    if (!accessToken || type !== 'recovery') {
-      setError('Invalid reset link. Please request a new password reset.');
-      return;
-    }
-
-    // Set the session with the tokens from the URL
-    const setSessionAsync = async () => {
+    const handlePasswordReset = async () => {
       try {
-        const sessionData = {
-          access_token: accessToken,
-          refresh_token: refreshToken || accessToken, // Use access token as fallback
-        };
+        // Parse URL hash parameters  
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');  
+        const type = hashParams.get('type');
         
-        console.log('Setting session with:', sessionData);
+        console.log('Reset password URL hash:', window.location.hash);
+        console.log('Reset password tokens:', { 
+          accessToken: accessToken ? 'present' : 'missing',
+          refreshToken: refreshToken ? 'present' : 'missing', 
+          type 
+        });
         
-        // Add timeout to prevent hanging
-        const sessionPromise = supabase.auth.setSession(sessionData);
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Session setup timeout')), 5000)
-        );
-        
-        const { error } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+        if (!accessToken || type !== 'recovery') {
+          setError('Invalid reset link. Please request a new password reset.');
+          return;
+        }
+
+        // Supabase handles password reset tokens automatically when they're in the URL
+        // We don't need to manually set the session - just let Supabase detect the recovery type
+        const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Error setting session:', error);
-          // Try alternative approach if JWT parsing fails
-          if (error.message?.includes('JWT') || error.message?.includes('Invalid') || error.message?.includes('expired')) {
-            console.log('JWT/Session error detected, but tokens are present. User can still try password reset...');
-            // Allow password reset to proceed - we'll try session setup again during password update
-          } else {
-            setError('Invalid reset link. Please request a new password reset.');
-          }
-        } else {
-          console.log('Session set successfully for password reset');
+          console.log('Session error (expected for recovery):', error);
+          // This is normal for recovery links - the session will be established when needed
         }
-      } catch (error: any) {
-        console.error('Error setting session:', error);
-        if (error.message === 'Session setup timeout') {
-          console.log('Session setup timed out, proceeding anyway...');
-          // Allow password reset to proceed
+        
+        if (session) {
+          console.log('Existing session found:', session.user?.email);
         } else {
-          setError('Invalid reset link. Please request a new password reset.');
+          console.log('No existing session - recovery tokens will be used during password update');
         }
+        
+      } catch (error) {
+        console.error('Error handling password reset setup:', error);
+        setError('Error processing reset link. Please try again.');
       }
     };
     
-    setSessionAsync();
+    handlePasswordReset();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,88 +79,63 @@ function ResetPasswordForm() {
     try {
       console.log('Attempting to update password...');
       
-      // Get tokens from URL again for the update request
+      // Verify we still have the recovery tokens in the URL
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const accessToken = hashParams.get('access_token');
+      const type = hashParams.get('type');
       
-      if (!accessToken) {
-        setError('Session expired. Please request a new password reset link.');
+      if (!accessToken || type !== 'recovery') {
+        setError('Reset link expired. Please request a new password reset.');
         setLoading(false);
         return;
       }
 
-      // Try to set session again before password update
-      console.log('Setting session before password update...');
-      await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: hashParams.get('refresh_token') || accessToken
+      // Use server-side API for more reliable password reset
+      console.log('Calling server-side password reset API...');
+      
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accessToken: accessToken,
+          refreshToken: hashParams.get('refresh_token'),
+          password: password
+        })
       });
+
+      const result = await response.json();
       
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 15000)
-      );
-      
-      const updatePromise = supabase.auth.updateUser({
-        password: password
+      console.log('Password reset API result:', { 
+        status: response.status, 
+        result 
       });
-      
-      const result = await Promise.race([updatePromise, timeoutPromise]);
-      const { data, error } = result as any;
 
-      console.log('Password update result:', { data, error });
-
-      if (error) {
-        console.error('Password update error:', error);
-        // Check for specific error types and try API fallback
-        if (error.message?.includes('JWT') || error.message?.includes('session') || error.message?.includes('Invalid')) {
-          console.log('Client-side update failed, trying API fallback...');
-          
-          // Try API fallback
-          try {
-            const apiResponse = await fetch('/api/reset-password', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                accessToken: accessToken,
-                password: password
-              })
-            });
-
-            const apiResult = await apiResponse.json();
-
-            if (apiResponse.ok && apiResult.success) {
-              setMessage('Password updated successfully! Redirecting to login...');
-              setTimeout(() => {
-                router.push('/?login=true');
-              }, 2000);
-            } else {
-              setError(apiResult.error || 'Failed to update password. Please request a new reset link.');
-            }
-          } catch (apiError) {
-            console.error('API fallback failed:', apiError);
-            setError('Session expired. Please request a new password reset link.');
-          }
-        } else {
-          setError(error.message || 'Failed to update password. Please try again.');
-        }
-      } else {
+      if (response.ok && result.success) {
+        console.log('Password updated successfully via API');
         setMessage('Password updated successfully! Redirecting to login...');
+        
+        // Clear URL hash to prevent reuse
+        window.location.hash = '';
+        
         setTimeout(() => {
           router.push('/?login=true');
         }, 2000);
+      } else {
+        console.error('Password reset API failed:', result.error);
+        
+        if (result.error?.includes('expired') || result.error?.includes('Invalid')) {
+          setError('Reset link expired or invalid. Please request a new password reset.');
+        } else if (result.error?.includes('weak') || result.error?.includes('characters')) {
+          setError('Password is too weak. Please use a stronger password.');
+        } else {
+          setError(result.error || 'Failed to update password. Please try again.');
+        }
       }
     } catch (error: any) {
       console.error('Password update catch error:', error);
-      if (error.message === 'Request timeout') {
-        setError('Request timed out. Please check your connection and try again.');
-      } else if (error.message?.includes('JWT') || error.message?.includes('session')) {
-        setError('Session expired. Please request a new password reset link.');
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
