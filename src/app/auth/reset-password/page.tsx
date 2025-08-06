@@ -38,48 +38,8 @@ function ResetPasswordForm() {
       return;
     }
 
-    // Set the session with the tokens from the URL
-    const setSessionAsync = async () => {
-      try {
-        const sessionData = {
-          access_token: accessToken,
-          refresh_token: refreshToken || accessToken, // Use access token as fallback
-        };
-        
-        console.log('Setting session with:', sessionData);
-        
-        // Add timeout to prevent hanging
-        const sessionPromise = supabase.auth.setSession(sessionData);
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Session setup timeout')), 5000)
-        );
-        
-        const { error } = await Promise.race([sessionPromise, timeoutPromise]) as any;
-        
-        if (error) {
-          console.error('Error setting session:', error);
-          // Try alternative approach if JWT parsing fails
-          if (error.message?.includes('JWT') || error.message?.includes('Invalid')) {
-            console.log('JWT error detected, but proceeding with single client instance...');
-            // Session setup failed, but the single client should still work for password reset
-          } else {
-            setError('Invalid reset link. Please request a new password reset.');
-          }
-        } else {
-          console.log('Session set successfully for password reset');
-        }
-      } catch (error: any) {
-        console.error('Error setting session:', error);
-        if (error.message === 'Session setup timeout') {
-          console.log('Session setup timed out, but proceeding with single client instance...');
-          // Session setup timed out, but the single client should still work
-        } else {
-          setError('Invalid reset link. Please request a new password reset.');
-        }
-      }
-    };
-    
-    setSessionAsync();
+    // Skip session setup - we'll use server-side API instead
+    console.log('Token found, ready for server-side password reset');
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,38 +62,38 @@ function ResetPasswordForm() {
     }
 
     try {
-      console.log('Attempting to update password...');
+      console.log('Attempting to update password via server-side API...');
       
-      console.log('Using single Supabase client instance for password update...');
-      
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 10000)
-      );
-      
-      const updatePromise = supabase.auth.updateUser({
-        password: password
+      // Use server-side password reset API to bypass client-side JWT issues
+      const response = await fetch('/api/auth/password-reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: accessToken,
+          password: password
+        })
       });
-      
-      const result = await Promise.race([updatePromise, timeoutPromise]);
-      const { data, error } = result as any;
 
-      if (error) {
-        console.error('Password update error:', error);
-        throw error;
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('Server-side password reset error:', result.error);
+        setError(result.error || 'Failed to update password. Please try again.');
+        setLoading(false);
+        return;
       }
 
+      console.log('Password updated successfully via server-side API');
       setMessage('Password updated successfully! Redirecting to login...');
+      
       setTimeout(() => {
         router.push('/?login=true');
       }, 2000);
     } catch (error: any) {
       console.error('Password update catch error:', error);
-      if (error.message === 'Request timeout') {
-        setError('Request timed out. Please check your connection and try again.');
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
