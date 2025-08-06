@@ -63,26 +63,55 @@ export async function GET(request: NextRequest) {
     const currentUsage = usageData?.length || 0;
     console.log('Usage API: Current usage:', currentUsage, 'records:', usageData);
     
-    // Check user's subscription plan and end date
+    // Check user's subscription plan, end date, and renewal date
     const { data: userPlan, error: planError } = await supabaseAdmin
       .from('users')
-      .select('subscription_plan, subscription_status, subscription_end_date, stripe_customer_id')
+      .select('subscription_plan, subscription_status, subscription_end_date, subscription_renewal_date, stripe_customer_id')
       .eq('id', user.id)
       .single();
     
-    // Check if subscription is cancelled (will not renew) by querying Stripe
+    // Check subscription status and get renewal/end dates from Stripe
     let isSubscriptionCancelled = false;
+    let subscriptionEndDate = userPlan?.subscription_end_date;
+    let subscriptionRenewalDate = userPlan?.subscription_renewal_date;
+    
     if (userPlan?.stripe_customer_id && userPlan?.subscription_plan === 'pro') {
       try {
-        const subscriptions = await require('@/lib/stripe').default.subscriptions.list({
+        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+        const subscriptions = await stripe.subscriptions.list({
           customer: userPlan.stripe_customer_id,
           status: 'active',
           limit: 1
         });
         
         if (subscriptions.data.length > 0) {
-          isSubscriptionCancelled = subscriptions.data[0].cancel_at_period_end;
-          console.log('Usage API: Subscription cancellation status:', isSubscriptionCancelled);
+          const subscription = subscriptions.data[0];
+          isSubscriptionCancelled = subscription.cancel_at_period_end;
+          const nextPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+          
+          if (isSubscriptionCancelled) {
+            // Cancelled subscription - use end date
+            if (!subscriptionEndDate) {
+              subscriptionEndDate = nextPeriodEnd;
+              console.log('Usage API: Got subscription end date from Stripe:', subscriptionEndDate);
+            }
+            // Clear renewal date for cancelled subscriptions
+            subscriptionRenewalDate = null;
+          } else {
+            // Active auto-renewing subscription - use renewal date
+            if (!subscriptionRenewalDate) {
+              subscriptionRenewalDate = nextPeriodEnd;
+              console.log('Usage API: Got subscription renewal date from Stripe:', subscriptionRenewalDate);
+            }
+            // Clear end date for active subscriptions
+            subscriptionEndDate = null;
+          }
+          
+          console.log('Usage API: Subscription status:', { 
+            cancelled: isSubscriptionCancelled, 
+            endDate: subscriptionEndDate,
+            renewalDate: subscriptionRenewalDate
+          });
         }
       } catch (stripeError) {
         console.error('Usage API: Error checking Stripe subscription status:', stripeError);
@@ -101,21 +130,27 @@ export async function GET(request: NextRequest) {
     if (isPro) {
       // Check if subscription is renewing soon (2 days warning)
       const now = new Date();
-      const isRenewingSoon = userPlan?.subscription_end_date ? 
-        new Date(userPlan.subscription_end_date) <= new Date(now.getTime() + (2 * 24 * 60 * 60 * 1000)) : // 2 days warning
+      const relevantDate = isSubscriptionCancelled ? subscriptionEndDate : subscriptionRenewalDate;
+      const isRenewingSoon = relevantDate ? 
+        new Date(relevantDate) <= new Date(now.getTime() + (2 * 24 * 60 * 60 * 1000)) : // 2 days warning
         false;
         
       usageResponse = {
         current: currentUsage,
         limit: -1, // Unlimited
         remaining: -1, // Unlimited
-        subscriptionEndDate: userPlan?.subscription_end_date,
+        subscriptionEndDate: subscriptionEndDate,
+        subscriptionRenewalDate: subscriptionRenewalDate,
         isRenewingSoon: isRenewingSoon,
         isSubscriptionCancelled: isSubscriptionCancelled
       };
       console.log('Usage API: Pro user - unlimited access', { 
-        endDate: userPlan?.subscription_end_date,
-        isRenewingSoon 
+        originalEndDate: userPlan?.subscription_end_date,
+        originalRenewalDate: userPlan?.subscription_renewal_date,
+        finalEndDate: subscriptionEndDate,
+        finalRenewalDate: subscriptionRenewalDate,
+        isRenewingSoon,
+        isSubscriptionCancelled
       });
     } else {
       const FREE_LIMIT = 3;

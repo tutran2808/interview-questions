@@ -2,9 +2,10 @@ import React from 'react';
 
 interface HeroSectionProps {
   onGetStarted: () => void;
+  isPro?: boolean;
 }
 
-const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
+const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted, isPro = false }) => {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       {/* Background decoration */}
@@ -20,7 +21,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
             <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd"></path>
             </svg>
-            AI-Powered Question Generator
+            AI-Powered Interview Question Generator
           </div>
           
           {/* Main heading */}
@@ -41,7 +42,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
               onClick={onGetStarted}
               className="group bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-bold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-105 whitespace-nowrap"
             >
-              Generate Questions Free
+{isPro ? "Generate Questions Now" : "Generate Questions Free"}
               <svg className="inline-block w-4 h-4 sm:w-5 sm:h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>

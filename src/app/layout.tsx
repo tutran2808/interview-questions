@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     siteName: "Next Rounds AI",
     images: [
       {
-        url: "https://nextrounds.ai/og-image.png?v=3",
+        url: "https://nextrounds.ai/og-image.png?v=4",
         width: 1200,
         height: 630,
         alt: "Next Rounds AI - AI-Powered Interview Question Generator"
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     creator: "@nextroundsai", 
     title: "Next Rounds AI - AI-Powered Interview Question Generator",
     description: "Generate personalized interview questions with AI. Free to start, used by thousands of job seekers.",
-    images: ["https://nextrounds.ai/og-image.png?v=3"]
+    images: ["https://nextrounds.ai/og-image.png?v=4"]
   },
   icons: {
     icon: [

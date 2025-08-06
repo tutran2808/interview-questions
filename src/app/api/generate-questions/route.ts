@@ -232,10 +232,10 @@ async function checkUserAuthAndUsage(request: NextRequest) {
   const currentUsage = usageData?.length || 0;
   console.log('Current usage found:', currentUsage, 'records:', usageData);
   
-  // Get user's subscription plan
+  // Get user's subscription plan, dates, and Stripe info
   const { data: userPlan, error: planError } = await supabaseAdmin
     .from('users')
-    .select('subscription_plan, subscription_status')
+    .select('subscription_plan, subscription_status, subscription_end_date, subscription_renewal_date, stripe_customer_id')
     .eq('id', user.id)
     .single();
   
@@ -249,12 +249,64 @@ async function checkUserAuthAndUsage(request: NextRequest) {
   
   if (isPro) {
     console.log('Pro user - unlimited access');
+    
+    // Get renewal/end dates and subscription status from Stripe
+    let isSubscriptionCancelled = false;
+    let subscriptionEndDate = userPlan?.subscription_end_date;
+    let subscriptionRenewalDate = userPlan?.subscription_renewal_date;
+    
+    if (userPlan?.stripe_customer_id) {
+      try {
+        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+        const subscriptions = await stripe.subscriptions.list({
+          customer: userPlan.stripe_customer_id,
+          status: 'active',
+          limit: 1
+        });
+        
+        if (subscriptions.data.length > 0) {
+          const subscription = subscriptions.data[0];
+          isSubscriptionCancelled = subscription.cancel_at_period_end;
+          const nextPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+          
+          if (isSubscriptionCancelled) {
+            // Cancelled subscription - use end date
+            if (!subscriptionEndDate) {
+              subscriptionEndDate = nextPeriodEnd;
+              console.log('Generate API: Got subscription end date from Stripe:', subscriptionEndDate);
+            }
+            // Clear renewal date for cancelled subscriptions
+            subscriptionRenewalDate = null;
+          } else {
+            // Active auto-renewing subscription - use renewal date
+            if (!subscriptionRenewalDate) {
+              subscriptionRenewalDate = nextPeriodEnd;
+              console.log('Generate API: Got subscription renewal date from Stripe:', subscriptionRenewalDate);
+            }
+            // Clear end date for active subscriptions
+            subscriptionEndDate = null;
+          }
+          
+          console.log('Generate API: Subscription status:', {
+            cancelled: isSubscriptionCancelled,
+            endDate: subscriptionEndDate,
+            renewalDate: subscriptionRenewalDate
+          });
+        }
+      } catch (stripeError) {
+        console.error('Generate API: Error checking Stripe subscription status:', stripeError);
+      }
+    }
+    
     return {
       user,
       currentUsage,
       limit: -1, // Unlimited
       remaining: -1, // Unlimited
-      isPro: true
+      isPro: true,
+      subscriptionEndDate: subscriptionEndDate,
+      subscriptionRenewalDate: subscriptionRenewalDate,
+      isSubscriptionCancelled
     };
   }
   
@@ -778,7 +830,10 @@ export async function POST(request: NextRequest) {
         usage: {
           current: currentUsage! + 1,
           limit: authResult.limit,
-          remaining: authResult.remaining! - 1
+          remaining: authResult.remaining! - 1,
+          ...(authResult.subscriptionEndDate && { subscriptionEndDate: authResult.subscriptionEndDate }),
+          ...(authResult.subscriptionRenewalDate && { subscriptionRenewalDate: authResult.subscriptionRenewalDate }),
+          ...(authResult.hasOwnProperty('isSubscriptionCancelled') && { isSubscriptionCancelled: authResult.isSubscriptionCancelled })
         },
         timestamp: new Date().toISOString(),
         mock: true,
@@ -1014,7 +1069,10 @@ export async function POST(request: NextRequest) {
     const updatedUsage = {
       current: currentUsage! + 1,
       limit: authResult.limit,
-      remaining: authResult.remaining! - 1
+      remaining: authResult.remaining! - 1,
+      ...(authResult.subscriptionEndDate && { subscriptionEndDate: authResult.subscriptionEndDate }),
+      ...(authResult.subscriptionRenewalDate && { subscriptionRenewalDate: authResult.subscriptionRenewalDate }),
+      ...(authResult.hasOwnProperty('isSubscriptionCancelled') && { isSubscriptionCancelled: authResult.isSubscriptionCancelled })
     };
     
     console.log('=== SUCCESS RESPONSE ===');

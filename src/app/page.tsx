@@ -185,7 +185,7 @@ export default function Home() {
       setVerificationMessage('');
     }
   }, []);
-  const [usageInfo, setUsageInfo] = useState<{current: number, limit: number, remaining: number} | null>(null);
+  const [usageInfo, setUsageInfo] = useState<{current: number, limit: number, remaining: number, subscriptionEndDate?: string, subscriptionRenewalDate?: string, isRenewingSoon?: boolean, isSubscriptionCancelled?: boolean, resetDate?: string} | null>(null);
   const [isPro, setIsPro] = useState(false);
   const toolRef = useRef<HTMLElement>(null);
   const questionsRef = useRef<HTMLElement>(null);
@@ -203,7 +203,7 @@ export default function Home() {
     }
   }, [user]);
 
-  const handleUsageUpdate = (usage: {current: number, limit: number, remaining: number}) => {
+  const handleUsageUpdate = (usage: {current: number, limit: number, remaining: number, subscriptionEndDate?: string, subscriptionRenewalDate?: string, isRenewingSoon?: boolean, isSubscriptionCancelled?: boolean, resetDate?: string}) => {
     setUsageInfo(usage);
     // Check if user is Pro based on unlimited limit
     setIsPro(usage.limit === -1);
@@ -365,8 +365,18 @@ export default function Home() {
     if (!generatedQuestions) return;
     
     try {
-      const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
-      const { saveAs } = await import('file-saver');
+      console.log('Starting Word export...');
+      const docx = await import('docx');
+      const fileSaver = await import('file-saver');
+      
+      const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
+      const saveAs = fileSaver.saveAs || fileSaver.default?.saveAs || fileSaver.default;
+      
+      if (!saveAs || typeof saveAs !== 'function') {
+        throw new Error('file-saver not loaded correctly');
+      }
+      
+      console.log('Libraries loaded successfully');
       
       const children: any[] = [
         new Paragraph({
@@ -377,6 +387,9 @@ export default function Home() {
       
       Object.entries(generatedQuestions).forEach(([category, questions]) => {
         if (category === 'mock' || category === 'message') return;
+        
+        // Ensure questions is an array before processing
+        if (!Array.isArray(questions)) return;
         
         children.push(
           new Paragraph({
@@ -419,11 +432,16 @@ export default function Home() {
         }],
       });
       
+      console.log('Document created, generating blob...');
       const blob = await Packer.toBlob(doc);
+      console.log('Blob generated, saving file...');
+      
       saveAs(blob, "interview-questions.docx");
+      console.log('Word document saved successfully');
     } catch (error) {
       console.error('Error exporting Word document:', error);
-      alert('Error exporting Word document. Please try again.');
+      console.error('Error details:', error.message, error.stack);
+      alert(`Error exporting Word document: ${error.message}. Please try again.`);
     }
   };
 
@@ -500,7 +518,7 @@ export default function Home() {
       )}
       
       <main>
-        <HeroSection onGetStarted={scrollToTool} />
+        <HeroSection onGetStarted={scrollToTool} isPro={isPro} />
         
         <HowItWorksSection />
         

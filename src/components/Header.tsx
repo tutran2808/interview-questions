@@ -6,15 +6,15 @@ import AuthModal from './AuthModal';
 
 interface HeaderProps {
   onAuthRequired?: () => void;
-  usageInfo?: {current: number, limit: number, remaining: number} | null;
-  onUsageUpdate?: (usage: {current: number, limit: number, remaining: number}) => void;
+  usageInfo?: {current: number, limit: number, remaining: number, subscriptionEndDate?: string, subscriptionRenewalDate?: string, isRenewingSoon?: boolean, isSubscriptionCancelled?: boolean, resetDate?: string} | null;
+  onUsageUpdate?: (usage: {current: number, limit: number, remaining: number, subscriptionEndDate?: string, subscriptionRenewalDate?: string, isRenewingSoon?: boolean, isSubscriptionCancelled?: boolean, resetDate?: string}) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInfo, onUsageUpdate }) => {
   const { user, signOut, loading, session, forceSignOut } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
-  const [usageInfo, setUsageInfo] = useState<{current: number, limit: number, remaining: number} | null>(null);
+  const [usageInfo, setUsageInfo] = useState<{current: number, limit: number, remaining: number, subscriptionEndDate?: string, subscriptionRenewalDate?: string, isRenewingSoon?: boolean, isSubscriptionCancelled?: boolean, resetDate?: string} | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Emergency keyboard shortcut for corrupted sessions (Ctrl+Shift+L)
@@ -327,7 +327,7 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
                             </svg>
                             <span className="text-sm font-medium text-green-600">Unlimited Questions</span>
                           </div>
-                          {(usageInfo as any)?.subscriptionEndDate && (
+                          {((usageInfo as any)?.subscriptionEndDate || (usageInfo as any)?.subscriptionRenewalDate) && (
                             <div className="text-center">
                               {(usageInfo as any)?.isSubscriptionCancelled ? (
                                 <>
@@ -341,7 +341,7 @@ const Header: React.FC<HeaderProps> = ({ onAuthRequired, usageInfo: propUsageInf
                               ) : (
                                 <>
                                   <p className="text-xs text-blue-600 font-medium">
-                                    Subscription renews on {new Date((usageInfo as any).subscriptionEndDate).toLocaleDateString()}
+                                    Subscription renews on {new Date((usageInfo as any).subscriptionRenewalDate).toLocaleDateString()}
                                   </p>
                                   <p className="text-xs text-gray-500 mt-1">
                                     Cancel anytime via Manage Subscription

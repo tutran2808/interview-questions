@@ -27,7 +27,9 @@
       "Bash(openssl rand:*)",
       "Bash(find:*)",
       "Bash(cp:*)",
-      "Bash(npx vercel:*)"
+      "Bash(npx vercel:*)",
+      "Bash(sips:*)",
+      "Bash(git restore:*)"
     ],
     "deny": []
   }

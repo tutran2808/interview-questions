@@ -20,7 +20,7 @@ interface InterviewToolFormProps {
   isGenerating: boolean;
   setIsGenerating: (generating: boolean) => void;
   onAuthRequired?: () => void;
-  onUsageUpdate?: (usage: {current: number, limit: number, remaining: number}) => void;
+  onUsageUpdate?: (usage: {current: number, limit: number, remaining: number, subscriptionEndDate?: string, isRenewingSoon?: boolean, isSubscriptionCancelled?: boolean, resetDate?: string}) => void;
 }
 
 const InterviewToolForm: React.FC<InterviewToolFormProps> = ({
@@ -35,7 +35,7 @@ const InterviewToolForm: React.FC<InterviewToolFormProps> = ({
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [hiringStage, setHiringStage] = useState('');
   const [dragActive, setDragActive] = useState(false);
-  const [usageInfo, setUsageInfo] = useState<{current: number, limit: number, remaining: number} | null>(null);
+  const [usageInfo, setUsageInfo] = useState<{current: number, limit: number, remaining: number, subscriptionEndDate?: string, isRenewingSoon?: boolean, isSubscriptionCancelled?: boolean, resetDate?: string} | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Fetch usage info when user logs in

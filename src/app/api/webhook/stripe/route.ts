@@ -94,19 +94,29 @@ export async function POST(request: NextRequest) {
 
           console.log('👤 Found user:', existingUser);
 
-          // Get subscription details to set end date
+          // Get subscription details to set proper dates
           let subscriptionEndDate = null;
+          let subscriptionRenewalDate = null;
           try {
             if (session.subscription) {
               const subscription = await stripe.subscriptions.retrieve(session.subscription);
-              subscriptionEndDate = new Date(subscription.current_period_end * 1000).toISOString();
-              console.log('📅 Setting subscription end date from session:', subscriptionEndDate);
+              const nextPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+              
+              if (subscription.cancel_at_period_end) {
+                // Cancelled subscription - use end date
+                subscriptionEndDate = nextPeriodEnd;
+                console.log('📅 Setting subscription end date (cancelled):', subscriptionEndDate);
+              } else {
+                // Active auto-renewing subscription - use renewal date
+                subscriptionRenewalDate = nextPeriodEnd;
+                console.log('📅 Setting subscription renewal date (active):', subscriptionRenewalDate);
+              }
             }
           } catch (subError) {
             console.error('⚠️  Could not retrieve subscription details:', subError);
           }
 
-          // Update user to Pro plan with customer ID and end date
+          // Update user to Pro plan with customer ID and appropriate date
           const { data, error } = await supabaseAdmin
             .from('users')
             .update({
@@ -114,6 +124,7 @@ export async function POST(request: NextRequest) {
               subscription_status: 'active',
               stripe_customer_id: session.customer,
               subscription_end_date: subscriptionEndDate,
+              subscription_renewal_date: subscriptionRenewalDate,
               updated_at: new Date().toISOString(),
             })
             .eq(lookupField, lookupValue)
@@ -151,9 +162,20 @@ export async function POST(request: NextRequest) {
           const userId = users[0].id;
           console.log('🔄 Upgrading user to Pro via subscription.created:', userId);
           
-          // Set subscription end date to current period end
-          const subscriptionEndDate = new Date(subscription.current_period_end * 1000).toISOString();
-          console.log('📅 Setting subscription end date:', subscriptionEndDate);
+          // Set proper date based on subscription status
+          const nextPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+          let subscriptionEndDate = null;
+          let subscriptionRenewalDate = null;
+          
+          if (subscription.cancel_at_period_end) {
+            // Cancelled subscription - use end date
+            subscriptionEndDate = nextPeriodEnd;
+            console.log('📅 Setting subscription end date (cancelled):', subscriptionEndDate);
+          } else {
+            // Active auto-renewing subscription - use renewal date
+            subscriptionRenewalDate = nextPeriodEnd;
+            console.log('📅 Setting subscription renewal date (active):', subscriptionRenewalDate);
+          }
           
           const { data, error } = await supabaseAdmin
             .from('users')
@@ -161,6 +183,7 @@ export async function POST(request: NextRequest) {
               subscription_plan: 'pro',
               subscription_status: 'active',
               subscription_end_date: subscriptionEndDate,
+              subscription_renewal_date: subscriptionRenewalDate,
               updated_at: new Date().toISOString(),
             })
             .eq('id', userId)
@@ -199,35 +222,42 @@ export async function POST(request: NextRequest) {
           // Handle different subscription states
           let plan = 'free';
           let status = 'inactive';
+          let subscriptionEndDate = null;
+          let subscriptionRenewalDate = null;
           
           if (subscription.status === 'active') {
             plan = 'pro';
             status = 'active';
+            const nextPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
             
             // Check if subscription is set to cancel at period end
             if (subscription.cancel_at_period_end) {
-              console.log('🔔 Subscription will cancel at period end, keeping Pro access until:', new Date(subscription.current_period_end * 1000));
-              // Still keep pro plan but mark as ending
+              console.log('🔔 Subscription will cancel at period end, keeping Pro access until:', nextPeriodEnd);
+              // Cancelled subscription - use end date, clear renewal date
+              subscriptionEndDate = nextPeriodEnd;
+              subscriptionRenewalDate = null;
               status = 'active'; // Keep Pro access until period ends
+            } else {
+              // Active auto-renewing subscription - use renewal date, clear end date
+              subscriptionRenewalDate = nextPeriodEnd;
+              subscriptionEndDate = null;
             }
           } else if (subscription.status === 'canceled' || subscription.status === 'incomplete_expired') {
             plan = 'free';
             status = 'inactive';
+            subscriptionEndDate = null;
+            subscriptionRenewalDate = null;
           }
-          
-          // Always set subscription end date for active Pro subscriptions
-          const subscriptionEndDate = subscription.status === 'active' 
-            ? new Date(subscription.current_period_end * 1000).toISOString()
-            : null;
           
           const updateData: any = {
             subscription_plan: plan,
             subscription_status: status,
             subscription_end_date: subscriptionEndDate,
+            subscription_renewal_date: subscriptionRenewalDate,
             updated_at: new Date().toISOString(),
           };
           
-          console.log('📅 Setting subscription end date:', subscriptionEndDate);
+          console.log('📅 Setting dates:', { endDate: subscriptionEndDate, renewalDate: subscriptionRenewalDate });
           
           const { error } = await supabaseAdmin
             .from('users')
@@ -274,16 +304,17 @@ export async function POST(request: NextRequest) {
               currentEndDate: user.subscription_end_date
             });
 
-            // Update subscription end date to new period end on renewal
-            const newSubscriptionEndDate = new Date(invoice.period_end * 1000).toISOString();
-            console.log('📅 Updating subscription end date on renewal:', newSubscriptionEndDate);
+            // Update subscription renewal date on renewal (assume it's auto-renewing unless cancelled)
+            const newRenewalDate = new Date(invoice.period_end * 1000).toISOString();
+            console.log('📅 Updating subscription renewal date on renewal:', newRenewalDate);
             
             const { data, error } = await supabaseAdmin
               .from('users')
               .update({
                 subscription_plan: 'pro',
                 subscription_status: 'active',
-                subscription_end_date: newSubscriptionEndDate, // Set new end date - subscription renewed
+                subscription_renewal_date: newRenewalDate, // Set new renewal date - subscription renewed
+                subscription_end_date: null, // Clear end date since it's auto-renewing
                 updated_at: new Date().toISOString(),
               })
               .eq('id', user.id)
@@ -342,6 +373,8 @@ export async function POST(request: NextRequest) {
             .update({
               subscription_plan: 'free',
               subscription_status: 'canceled',
+              subscription_end_date: null,
+              subscription_renewal_date: null,
               updated_at: new Date().toISOString(),
             })
             .eq('id', users[0].id)
