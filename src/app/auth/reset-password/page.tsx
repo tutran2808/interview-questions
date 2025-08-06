@@ -39,6 +39,13 @@ function ResetPasswordForm() {
           setError(''); // Clear any previous errors
         } else if (event === 'SIGNED_IN' && session) {
           console.log('User signed in after password recovery');
+          setIsReadyForReset(true);
+        } else if (event === 'INITIAL_SESSION' && session) {
+          console.log('Initial session found:', session);
+          // Check if this is a recovery session
+          if (session.user) {
+            setIsReadyForReset(true);
+          }
         }
       }
     );
@@ -48,9 +55,12 @@ function ResetPasswordForm() {
       if (error) {
         console.error('Error getting session:', error);
         setError('Invalid reset link. Please request a new password reset.');
-      } else if (session) {
+      } else if (session && session.user) {
         console.log('Existing recovery session found:', session);
         setIsReadyForReset(true);
+        setError('');
+      } else {
+        console.log('No existing session, waiting for PASSWORD_RECOVERY event...');
       }
     });
 
@@ -105,7 +115,13 @@ function ResetPasswordForm() {
 
       if (error) {
         console.error('Password update error:', error);
-        setError('Failed to update password. Please try requesting a new reset link.');
+        if (error.message?.includes('New password should be different from the old password')) {
+          setError('Please choose a different password than your current one.');
+        } else if (error.message?.includes('Password should be')) {
+          setError('Password must be at least 6 characters long.');
+        } else {
+          setError('Failed to update password. Please try requesting a new reset link.');
+        }
         setLoading(false);
         return;
       }
