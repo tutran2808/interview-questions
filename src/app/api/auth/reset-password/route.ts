@@ -7,8 +7,19 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 export async function POST(request: NextRequest) {
   try {
     console.log('=== PASSWORD RESET API CALLED ===');
+    console.log('Environment check:', {
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(0, 30) + '...'
+    });
     
     const { accessToken, refreshToken, password } = await request.json();
+    console.log('Request data:', {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+      hasPassword: !!password,
+      passwordLength: password?.length
+    });
     
     if (!accessToken || !password) {
       console.error('Missing required fields:', { 
@@ -26,13 +37,25 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Check environment variables
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase configuration:', {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseAnonKey
+      });
+      return NextResponse.json({ 
+        error: 'Server configuration error' 
+      }, { status: 500 });
+    }
+
     console.log('Creating Supabase client for password reset...');
     
     // Create a new client instance specifically for this reset operation
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: false,
-        autoRefreshToken: false
+        autoRefreshToken: false,
+        detectSessionInUrl: false
       }
     });
 
@@ -47,14 +70,14 @@ export async function POST(request: NextRequest) {
     if (sessionError) {
       console.error('Session error:', sessionError);
       return NextResponse.json({ 
-        error: 'Invalid or expired reset link' 
+        error: `Session error: ${sessionError.message}` 
       }, { status: 401 });
     }
 
     if (!sessionData.session?.user) {
-      console.error('No user found in session');
+      console.error('No user found in session:', sessionData);
       return NextResponse.json({ 
-        error: 'Invalid reset session' 
+        error: 'Invalid reset session - no user found' 
       }, { status: 401 });
     }
 
@@ -68,7 +91,7 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       console.error('Password update error:', updateError);
       return NextResponse.json({ 
-        error: updateError.message || 'Failed to update password' 
+        error: `Update failed: ${updateError.message}` 
       }, { status: 500 });
     }
 
@@ -79,10 +102,10 @@ export async function POST(request: NextRequest) {
       message: 'Password updated successfully'
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Password reset API error:', error);
     return NextResponse.json({ 
-      error: 'Internal server error' 
+      error: `Server error: ${error.message || 'Unknown error'}` 
     }, { status: 500 });
   }
 }
