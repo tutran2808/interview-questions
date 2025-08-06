@@ -60,8 +60,9 @@ function ResetPasswordForm() {
           console.error('Error setting session:', error);
           // Try alternative approach if JWT parsing fails
           if (error.message?.includes('JWT') || error.message?.includes('Invalid')) {
-            console.log('JWT error detected, proceeding without session setup...');
-            // Allow password reset to proceed - the tokens in URL should be sufficient
+            console.log('JWT error detected, will try direct token approach for password reset...');
+            // Store tokens for direct use in password update
+            window.resetTokens = { accessToken, refreshToken };
           } else {
             setError('Invalid reset link. Please request a new password reset.');
           }
@@ -71,8 +72,9 @@ function ResetPasswordForm() {
       } catch (error: any) {
         console.error('Error setting session:', error);
         if (error.message === 'Session setup timeout') {
-          console.log('Session setup timed out, proceeding anyway...');
-          // Allow password reset to proceed
+          console.log('Session setup timed out, will use direct token approach...');
+          // Store tokens for direct use
+          window.resetTokens = { accessToken, refreshToken };
         } else {
           setError('Invalid reset link. Please request a new password reset.');
         }
@@ -104,29 +106,60 @@ function ResetPasswordForm() {
     try {
       console.log('Attempting to update password...');
       
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 10000)
-      );
+      // Check if we have stored tokens from failed session setup
+      const storedTokens = (window as any).resetTokens;
       
-      const updatePromise = supabase.auth.updateUser({
-        password: password
-      });
-      
-      const result = await Promise.race([updatePromise, timeoutPromise]);
-      const { data, error } = result as any;
-
-      console.log('Password update result:', { data, error });
-
-      if (error) {
-        console.error('Password update error:', error);
-        setError(error.message || 'Failed to update password. Please try again.');
+      if (storedTokens) {
+        console.log('Using direct token approach for password update...');
+        
+        // Create a temporary client with the recovery token
+        const { createClient } = await import('@supabase/supabase-js');
+        const tempClient = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        
+        // Set session with the tokens
+        await tempClient.auth.setSession({
+          access_token: storedTokens.accessToken,
+          refresh_token: storedTokens.refreshToken
+        });
+        
+        const { data, error } = await tempClient.auth.updateUser({
+          password: password
+        });
+        
+        if (error) {
+          console.error('Direct token password update error:', error);
+          throw error;
+        }
+        
+        console.log('Password updated successfully with direct token approach');
       } else {
-        setMessage('Password updated successfully! Redirecting to login...');
-        setTimeout(() => {
-          router.push('/?login=true');
-        }, 2000);
+        console.log('Using standard session approach for password update...');
+        
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout')), 10000)
+        );
+        
+        const updatePromise = supabase.auth.updateUser({
+          password: password
+        });
+        
+        const result = await Promise.race([updatePromise, timeoutPromise]);
+        const { data, error } = result as any;
+        
+        if (error) {
+          console.error('Standard password update error:', error);
+          throw error;
+        }
       }
+
+      setMessage('Password updated successfully! Redirecting to login...');
+      setTimeout(() => {
+        router.push('/?login=true');
+      }, 2000);
     } catch (error: any) {
       console.error('Password update catch error:', error);
       if (error.message === 'Request timeout') {
