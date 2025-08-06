@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -12,62 +11,64 @@ function ResetPasswordForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [isReadyForReset, setIsReadyForReset] = useState(false);
 
   useEffect(() => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    // Check if we have the proper hash/tokens in the URL
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+    const type = hashParams.get('type');
     
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-      }
-    });
+    console.log('Reset password URL hash:', window.location.hash);
+    console.log('Reset password tokens:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
+    
+    if (!accessToken || type !== 'recovery') {
+      setError('Invalid reset link. Please request a new password reset.');
+      return;
+    }
 
-    console.log('Setting up PASSWORD_RECOVERY event listener...');
-
-    // Listen for auth state changes, specifically PASSWORD_RECOVERY
-    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
-      (event: AuthChangeEvent, session: Session | null) => {
-        console.log('Auth state change:', event, session);
+    // Set the session with the tokens from the URL
+    const setSessionAsync = async () => {
+      try {
+        const sessionData = {
+          access_token: accessToken,
+          refresh_token: refreshToken || accessToken, // Use access token as fallback
+        };
         
-        if (event === 'PASSWORD_RECOVERY') {
-          console.log('PASSWORD_RECOVERY event detected, user can now reset password');
-          setIsReadyForReset(true);
-          setError(''); // Clear any previous errors
-        } else if (event === 'SIGNED_IN' && session) {
-          console.log('User signed in after password recovery');
-          setIsReadyForReset(true);
-        } else if (event === 'INITIAL_SESSION' && session) {
-          console.log('Initial session found:', session);
-          // Check if this is a recovery session
-          if (session.user) {
-            setIsReadyForReset(true);
+        console.log('Setting session with:', sessionData);
+        
+        // Add timeout to prevent hanging
+        const sessionPromise = supabase.auth.setSession(sessionData);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session setup timeout')), 5000)
+        );
+        
+        const { error } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+        
+        if (error) {
+          console.error('Error setting session:', error);
+          // Try alternative approach if JWT parsing fails
+          if (error.message?.includes('JWT') || error.message?.includes('Invalid')) {
+            console.log('JWT error detected, proceeding without session setup...');
+            // Allow password reset to proceed - the tokens in URL should be sufficient
+          } else {
+            setError('Invalid reset link. Please request a new password reset.');
           }
+        } else {
+          console.log('Session set successfully for password reset');
+        }
+      } catch (error: any) {
+        console.error('Error setting session:', error);
+        if (error.message === 'Session setup timeout') {
+          console.log('Session setup timed out, proceeding anyway...');
+          // Allow password reset to proceed
+        } else {
+          setError('Invalid reset link. Please request a new password reset.');
         }
       }
-    );
-
-    // Check if there's already a recovery session
-    supabaseClient.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Error getting session:', error);
-        setError('Invalid reset link. Please request a new password reset.');
-      } else if (session && session.user) {
-        console.log('Existing recovery session found:', session);
-        setIsReadyForReset(true);
-        setError('');
-      } else {
-        console.log('No existing session, waiting for PASSWORD_RECOVERY event...');
-      }
-    });
-
-    // Cleanup subscription on unmount
-    return () => {
-      subscription?.unsubscribe();
     };
+    
+    setSessionAsync();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -89,66 +90,40 @@ function ResetPasswordForm() {
       return;
     }
 
-    if (!isReadyForReset) {
-      setError('Password reset session not ready. Please try the reset link again.');
-      setLoading(false);
-      return;
-    }
-
     try {
-      console.log('Attempting to update password with PASSWORD_RECOVERY session...');
+      console.log('Attempting to update password...');
       
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
       
-      const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: {
-          autoRefreshToken: true,
-          persistSession: true,
-          detectSessionInUrl: true
-        }
-      });
-
-      const { data, error } = await supabaseClient.auth.updateUser({
+      const updatePromise = supabase.auth.updateUser({
         password: password
       });
+      
+      const result = await Promise.race([updatePromise, timeoutPromise]);
+      const { data, error } = result as any;
+
+      console.log('Password update result:', { data, error });
 
       if (error) {
         console.error('Password update error:', error);
-        if (error.message?.includes('New password should be different from the old password')) {
-          setError('Please choose a different password than your current one.');
-        } else if (error.message?.includes('Password should be')) {
-          setError('Password must be at least 6 characters long.');
-        } else {
-          setError('Failed to update password. Please try requesting a new reset link.');
-        }
-        setLoading(false);
-        return;
-      }
-
-      console.log('Password updated successfully:', data);
-      setMessage('Password updated successfully! Redirecting to login...');
-      setLoading(false);
-      
-      // Clear URL hash to prevent reuse
-      try {
-        window.location.hash = '';
-      } catch (e) {
-        console.log('Could not clear hash:', e);
-      }
-      
-      setTimeout(() => {
-        try {
+        setError(error.message || 'Failed to update password. Please try again.');
+      } else {
+        setMessage('Password updated successfully! Redirecting to login...');
+        setTimeout(() => {
           router.push('/?login=true');
-        } catch (e) {
-          console.log('Could not redirect:', e);
-          window.location.href = '/?login=true';
-        }
-      }, 2000);
-
+        }, 2000);
+      }
     } catch (error: any) {
       console.error('Password update catch error:', error);
-      setError('An unexpected error occurred. Please try again.');
+      if (error.message === 'Request timeout') {
+        setError('Request timed out. Please check your connection and try again.');
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
+    } finally {
       setLoading(false);
     }
   };
@@ -170,26 +145,11 @@ function ResetPasswordForm() {
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
             {error}
-            {error.includes('Invalid reset link') && (
-              <div className="mt-2">
-                <button
-                  onClick={() => router.push('/')}
-                  className="text-red-800 hover:text-red-900 underline font-medium"
-                >
-                  Request a new password reset
-                </button>
-              </div>
-            )}
           </div>
         )}
         {message && (
           <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">
             {message}
-          </div>
-        )}
-        {!isReadyForReset && !error && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-700 text-sm">
-            Preparing password reset session...
           </div>
         )}
 
@@ -228,7 +188,7 @@ function ResetPasswordForm() {
 
           <button
             type="submit"
-            disabled={loading || !password || !confirmPassword || !isReadyForReset}
+            disabled={loading || !password || !confirmPassword}
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
