@@ -13,13 +13,24 @@ function ResetPasswordForm() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    // Check if we have the proper hash/tokens in the URL
+    // Check both hash and query parameters for tokens
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const refreshToken = hashParams.get('refresh_token');
-    const type = hashParams.get('type');
+    const queryParams = new URLSearchParams(window.location.search);
+    
+    // Try hash format first (new template)
+    let accessToken = hashParams.get('access_token');
+    let refreshToken = hashParams.get('refresh_token');
+    let type = hashParams.get('type');
+    
+    // Fallback to query format (old template)
+    if (!accessToken && queryParams.get('token')) {
+      accessToken = queryParams.get('token');
+      type = queryParams.get('type');
+      refreshToken = accessToken; // Use token as both access and refresh
+    }
     
     console.log('Reset password URL hash:', window.location.hash);
+    console.log('Reset password URL search:', window.location.search);
     console.log('Reset password tokens:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
     
     if (!accessToken || type !== 'recovery') {
