@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -13,48 +13,40 @@ function ResetPasswordForm() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const handlePasswordReset = async () => {
+    const initializePasswordReset = async () => {
       try {
-        // Parse URL hash parameters  
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');  
-        const type = hashParams.get('type');
+        // Create a fresh Supabase client for password reset
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
         
-        console.log('Reset password URL hash:', window.location.hash);
-        console.log('Reset password tokens:', { 
-          accessToken: accessToken ? 'present' : 'missing',
-          refreshToken: refreshToken ? 'present' : 'missing', 
-          type 
+        const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+            detectSessionInUrl: true
+          }
+        });
+
+        // Let Supabase detect and handle the recovery session from URL
+        const { data, error } = await supabaseClient.auth.getSession();
+        
+        console.log('Recovery session detection:', { 
+          hasSession: !!data.session,
+          hasUser: !!data.session?.user,
+          error: error?.message 
         });
         
-        if (!accessToken || type !== 'recovery') {
-          setError('Invalid reset link. Please request a new password reset.');
-          return;
-        }
-
-        // Supabase handles password reset tokens automatically when they're in the URL
-        // We don't need to manually set the session - just let Supabase detect the recovery type
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.log('Session error (expected for recovery):', error);
-          // This is normal for recovery links - the session will be established when needed
-        }
-        
-        if (session) {
-          console.log('Existing session found:', session.user?.email);
+        if (data.session?.user) {
+          console.log('Recovery session established for:', data.session.user.email);
         } else {
-          console.log('No existing session - recovery tokens will be used during password update');
+          console.log('No recovery session detected - will try during password update');
         }
-        
       } catch (error) {
-        console.error('Error handling password reset setup:', error);
-        setError('Error processing reset link. Please try again.');
+        console.error('Error initializing password reset:', error);
       }
     };
     
-    handlePasswordReset();
+    initializePasswordReset();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,30 +82,31 @@ function ResetPasswordForm() {
         return;
       }
 
-      // Use server-side API for more reliable password reset
-      console.log('Calling server-side password reset API...');
+      // Create a fresh client that can handle recovery tokens from URL
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
       
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          accessToken: accessToken,
-          refreshToken: hashParams.get('refresh_token'),
-          password: password
-        })
+      const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: true
+        }
+      });
+      
+      console.log('Updating password with fresh client...');
+      
+      const { data, error } = await supabaseClient.auth.updateUser({
+        password: password
       });
 
-      const result = await response.json();
-      
-      console.log('Password reset API result:', { 
-        status: response.status, 
-        result 
-      });
+      console.log('Password update result:', { data, error });
 
-      if (response.ok && result.success) {
-        console.log('Password updated successfully via API');
+      if (error) {
+        console.error('Password update error:', error);
+        setError('Failed to update password. Please try requesting a new reset link.');
+      } else {
+        console.log('Password updated successfully');
         setMessage('Password updated successfully! Redirecting to login...');
         
         // Clear URL hash to prevent reuse
@@ -122,16 +115,6 @@ function ResetPasswordForm() {
         setTimeout(() => {
           router.push('/?login=true');
         }, 2000);
-      } else {
-        console.error('Password reset API failed:', result.error);
-        
-        if (result.error?.includes('expired') || result.error?.includes('Invalid')) {
-          setError('Reset link expired or invalid. Please request a new password reset.');
-        } else if (result.error?.includes('weak') || result.error?.includes('characters')) {
-          setError('Password is too weak. Please use a stronger password.');
-        } else {
-          setError(result.error || 'Failed to update password. Please try again.');
-        }
       }
     } catch (error: any) {
       console.error('Password update catch error:', error);
