@@ -280,7 +280,7 @@ const InterviewToolForm: React.FC<InterviewToolFormProps> = ({
                   <svg className="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
                   </svg>
-                  3 Free Generations
+                  3 Free Generations per month
                 </span>
                 <span className="flex items-center">
                   <svg className="w-4 h-4 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
@@ -528,7 +528,7 @@ const InterviewToolForm: React.FC<InterviewToolFormProps> = ({
               <button
                 type="submit"
                 disabled={isGenerating}
-                className="group relative bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 sm:px-16 py-4 rounded-2xl text-base sm:text-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-lg overflow-hidden whitespace-nowrap"
+                className="group relative bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 sm:px-16 py-4 rounded-2xl text-sm sm:text-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-lg overflow-hidden w-full max-w-full"
               >
                 {/* Shimmer effect */}
                 <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-pulse"></div>
@@ -539,7 +539,8 @@ const InterviewToolForm: React.FC<InterviewToolFormProps> = ({
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    AI is Generating Your Questions...
+                    <span className="hidden sm:inline">AI is Generating Your Questions...</span>
+                    <span className="sm:hidden">Generating...</span>
                   </span>
                 ) : (
                   <span className="flex items-center justify-center">
