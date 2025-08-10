@@ -62,8 +62,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted, isPro = false }
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
                 </svg>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">AI-Powered</h3>
-              <p className="text-gray-600 text-center">Advanced AI analyzes your resume and job requirements</p>
+              <h3 className="font-semibold text-gray-900 mb-2">AI-Powered Questions</h3>
+              <p className="text-gray-600 text-center">Intelligent interview questions generated specifically for your role</p>
             </div>
             
             <div className="flex flex-col items-center p-6 bg-white/60 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg">
@@ -72,18 +72,18 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted, isPro = false }
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">15-20 Questions</h3>
-              <p className="text-gray-600 text-center">Comprehensive question sets organized by category</p>
+              <h3 className="font-semibold text-gray-900 mb-2">Personalized Answers</h3>
+              <p className="text-gray-600 text-center">Tailored answers with approach instructions based on your resume</p>
             </div>
             
             <div className="flex flex-col items-center p-6 bg-white/60 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg">
               <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl flex items-center justify-center mb-4">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Secure & Private</h3>
-              <p className="text-gray-600 text-center">Your data is encrypted and never shared</p>
+              <h3 className="font-semibold text-gray-900 mb-2">Multiple Formats</h3>
+              <p className="text-gray-600 text-center">Download your questions and answers in PDF, Word, or CSV format</p>
             </div>
           </div>
         </div>
